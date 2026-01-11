@@ -1,5 +1,3 @@
-.include "vdu.asm"
-
 .memorymap
 	defaultslot 0
   slot 0 $0000 $8000	; 32K of ROM
@@ -41,20 +39,73 @@
 
 .section "main"
 	main:
-		; initialise the VDP registers
+		; initialise VDP registers
+		ld hl, $8000 + %00000100 ; enable mode 4
+		call VDP_SetAddress
+		ld hl, $8100 + %10100000 ; 16K VRAM, frame interrupts
+		call VDP_SetAddress
+		ld hl, $82ff ; name table base address $3800
+		call VDP_SetAddress
+		ld hl, $83ff ; color table base address (mostly redundant in mode 4)
+		call VDP_SetAddress
+		ld hl, $84ff ; pattern generator table base address (mostly redundant in mode 4)
+		call VDP_SetAddress
+		ld hl, $85ff ; SAT base address ($ff gives base address of $3f00)
+		call VDP_SetAddress
+		ld hl, $86ff ; sprite pattern table at $2000
+		call VDP_SetAddress
+		ld hl, $8700 ; BG color (from sprite palette)
+		call VDP_SetAddress
+		ld hl, $8800 ; BG X Scroll
+		call VDP_SetAddress
+		ld hl, $8900 ; BG Y Scroll
+		call VDP_SetAddress
+		ld hl, $8aff ; line interrupt line counter
+		call VDP_SetAddress
 
 		; setup CRAM (palette)
+		ld hl, VDP_CMD_CRAM_WRITE | $0000
+		call VDP_SetAddress
+		ld hl, Palette
+		ld bc, PaletteEnd - Palette
+		call VDP_CopyData
 
 		; setup tile patterns
+		ld hl, VDP_CMD_VRAM_WRITE | $0000
+		call VDP_SetAddress
+		ld hl, TilePatterns
+		ld bc, TilePatternsEnd - TilePatterns
+		call VDP_CopyData
 
-		; setup sprite patterns
+		; setup tilemap
+		ld hl, VDP_CMD_VRAM_WRITE | $3800
+		call VDP_SetAddress
+		ld hl, Tilemap
+		ld bc, TilemapEnd - Tilemap
+		call VDP_CopyData
 
-		; setup nametable
+		; TODO - setup sprite patterns
 
-		; setup SAT
+		; initialise shadow SAT
+		ld hl, ShadowSAT
+		ld (hl), $d0 ; D0 terminates the table
+
+		; set SAT
+		ld hl, VDP_CMD_VRAM_WRITE | $3f00
+		call VDP_SetAddress
+		ld hl, ShadowSAT
+		ld bc, 256
+		call VDP_CopyData
 
 		; turn on display
+		ld hl, $8100 + %11100000 ; 16K VRAM, enable display, frame interrupts
+		call VDP_SetAddress
 
 		; loop
 	-:jr -
+
+	.include "vdp.asm"
+	.include "data/palette.asm"
+	.include "data/tilepatterns.asm"
+	.include "data/tilemap.asm"
 .ends

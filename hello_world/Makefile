@@ -1,7 +1,7 @@
 bin/hello_world.sms: bin/hello_world.o
 	wlalink -d -r -v -s linkfile bin/hello_world.sms
 
-bin/hello_world.o: *.asm
+bin/hello_world.o: *.asm */*.asm
 	wla-z80 -o bin/hello_world.o main.asm
 
 .PHONY: clean
