@@ -1,6 +1,5 @@
 import argparse
-import sys
-import os
+from sms_data_gen.tiles import read_tiles
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
@@ -28,4 +27,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-    print(f"Processing images...")
+
+    tiles = []
+    tile_palette = []
+
+    if args.tiles:
+        tiles, tile_palette = read_tiles(args.tiles)
+
+    print("Tile count", len(tiles))
+    print("Tile palette color count", len(tile_palette))
