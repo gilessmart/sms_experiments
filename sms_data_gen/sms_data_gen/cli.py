@@ -1,5 +1,6 @@
 import argparse
 from sms_data_gen.tiles import read_tile_sheet, write_tile_data
+from sms_data_gen.palette import write_palette_data
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
@@ -36,11 +37,11 @@ def main():
     if args.tiles:
         tiles, tile_palette = read_tile_sheet(args.tiles)
 
-    # read tilemap
+    # read background, produce tilemap, update tiles & tile palette
 
     # read sprite sheet
 
-    # write palette
+    write_palette_data(args.out, tile_palette, sprite_palette)
     
     # write sprite data
     

@@ -1,6 +1,7 @@
 import sys
 import os
 from PIL import Image
+from sms_data_gen.utils import group, write_file
 
 VALID_SMS_RGB_VALUES = {0, 85, 170, 255}
 TILE_SIZE=8
@@ -49,38 +50,24 @@ def extract_tiles(img):
 
 def write_tile_data(output_dir, tiles, tile_palette):
     data = [get_tile_planar_data(tile, tile_palette) for tile in tiles]
-    
-    # Determine output file path
-    if output_dir is None:
-        output_dir = "."
-    else:
-        os.makedirs(output_dir, exist_ok=True)
-    
-    output_file = os.path.join(output_dir, "tile_patterns.asm")
+    content = format_tile_patterns(data)
+    write_file(output_dir, "tile_patterns.asm", content)
 
-    # Write the assembly file
-    try:
-        f = open(output_file, "w")
-    except Exception as e:
-        print(f"Error: Could not open data file for writing: {output_file}\n{e}")
-        sys.exit(1)
+def format_tile_patterns(tile_data_list):
+    """Format tile data as assembly code content."""
+    lines = ["TilePatterns:"]
     
-    with f:
-        f.write("TilePatterns:\n")
+    for tile_num, tile_data in enumerate(tile_data_list):
+        lines.append(f"; tile {tile_num:02x}")
         
-        for tile_num, tile_data in enumerate(data):
-            f.write(f"; Tile {tile_num:02x}\n")
-
-            for group_of_16 in [tile_data[i:i+16] for i in range(0, len(tile_data), 16)]:
-                f.write(".db ")
-                group_strs = []
-                for group_of_4 in [group_of_16[i:i+4] for i in range(0, len(group_of_16), 4)]:
-                    group_strs.append(",".join([f"${val:02x}" for val in group_of_4]))
-                f.write(", ".join(group_strs) + "\n")
-                
-        f.write("TilePatternsEnd:\n")
+        for group_of_16 in group(tile_data, 16):
+            group_strs = []
+            for group_of_4 in group(group_of_16, 4):
+                group_strs.append(",".join([f"${val:02x}" for val in group_of_4]))
+            lines.append(".db " + ", ".join(group_strs))
     
-    print(f"Wrote tile data to {output_file}")
+    lines.append("TilePatternsEnd:")
+    return "\n".join(lines) + "\n"
 
 def get_tile_planar_data(tile, tile_palette):
     tile_bytes = []

@@ -1,4 +1,3 @@
-import pytest
 from sms_data_gen.tiles import get_line_planar_data
 
 def test_line_indices_to_planar():
