@@ -4,26 +4,23 @@ from sms_data_gen.palette import write_palette_data
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
-    parser.add_argument('--sprites', help='Path to sprites PNG file')
-    parser.add_argument('--tiles', help='Path to tiles PNG file')
-    parser.add_argument('--tilemap', help='Path to tilemap PNG file')
-    parser.add_argument('--out', help='Output directory path')
+    parser.add_argument("-t", "--bg-tiles", metavar="background tile file path", dest="bg_tile_path", help="path to background tiles file")
+    parser.add_argument("-b", "--bg", metavar="background file path", dest="bg_path", help="path to background file")
+    parser.add_argument("-s", "--sprite-tiles", metavar="sprite tile path", dest="sprite_tile_path", help="path to sprite tile file")
+    parser.add_argument("-o", "--out", metavar="output directory path", dest="output_path", help="output directory path; default '.'")
     args = parser.parse_args()
     
     # ensure at least 1 file path is given
-    if not (args.sprites or args.tiles or args.tilemap):
-        parser.error("One of --sprites, --tiles and --tilemap must be supplied")
+    if not (args.sprite_tile_path or args.bg_tile_path or args.bg_path):
+        parser.error("At least one of the background tile file path, background file path, and sprite tile path must be supplied")
 
     # ensure file paths are unique
     file_paths = []
-    if args.sprites:
-        file_paths.append(args.sprites)
-    if args.tiles:
-        file_paths.append(args.tiles)
-    if args.tilemap:
-        file_paths.append(args.tilemap)
+    if args.bg_tile_path: file_paths.append(args.bg_tile_path)
+    if args.bg_path: file_paths.append(args.bg_path)
+    if args.sprite_tile_path: file_paths.append(args.sprite_tile_path)
     if len(file_paths) != len(set(file_paths)):
-        parser.error("All of --sprites, --tiles and --tilemap must be unique")
+        parser.error("The background tile file path, background file path, and sprite tile path must all be unique")
 
     return args
 
@@ -34,16 +31,16 @@ def main():
     tile_palette = []
     sprite_palette = []
 
-    if args.tiles:
-        tiles, tile_palette = read_tile_sheet(args.tiles)
+    if args.bg_tile_path:
+        tiles, tile_palette = read_tile_sheet(args.bg_tile_path)
 
-    # read background, produce tilemap, update tiles & tile palette
+    # TODO read background, produce tilemap, update tiles & tile palette
 
-    # read sprite sheet
+    # TODO read sprite sheet
 
-    write_palette_data(args.out, tile_palette, sprite_palette)
+    write_palette_data(args.output_path, tile_palette, sprite_palette)
     
-    # write sprite data
+    # TODO write sprite data
     
     if len(tiles) > 0:
-        write_tile_data(args.out, tiles, tile_palette)
+        write_tile_data(args.output_path, tiles, tile_palette)

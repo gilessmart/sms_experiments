@@ -10,16 +10,31 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Run
+## Usage
 
 ```
-python main.py --tiles test_images/tiles.png \
-               --tilemap test_images/background.png \
-               --sprites test_images/sprites.png \
-               --out output/
+python main.py <arguments>
+
+Arguments:
+  -t, --bg-tiles <background tile file path>
+      path to background tiles file
+  -b, --bg <background file path>
+      path to background file
+  -s, --sprite-tiles <sprite tile path>
+      path to sprite tile file
+  -o, --out <output directory path>
+      output directory path; default '.'
 ```
 
-At least one of `tiles`, `tilemap` and `sprites` must be supplied.
+At least one of `<background tile file path>`, `<background file path>`, and `<sprite tile path>` must be supplied.
+
+The `<background tile file path>`, `<background file path>`, and `<sprite tile path>` must all be unique.
+
+### Example
+
+```
+python main.py -t test_images/tiles.png -b test_images/background.png -s test_images/sprites.png -o output
+```
 
 ## Test
 
@@ -29,7 +44,7 @@ python -m pytest tests/
 
 ## Operation
 
-* Reads the the `tiles` (optional), `tilemap` & `sprites` PNG files
+* Reads the the `bg-tiles`, `tilemap` & `sprites` PNG files
 * Writes palette data to `palette.asm`
   * Tile palette (first 16 bytes) includes all colors in the tiles & tilemap files 
   * Sprite palette (last 16 bytes) includes all colors in the sprites file
