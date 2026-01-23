@@ -2,6 +2,27 @@ import argparse
 from sms_data_gen.tiles import read_tile_sheet, write_tile_data
 from sms_data_gen.palette import write_palette_data
 
+def main():
+    args = parse_args()
+
+    tiles = []
+    tile_palette = []
+    sprite_palette = []
+
+    if args.bg_tile_path:
+        tiles, tile_palette = read_tile_sheet(args.bg_tile_path)
+
+    # TODO read background, produce tilemap, update tiles & tile palette
+
+    # TODO read sprite sheet
+
+    write_palette_data(args.output_path, tile_palette, sprite_palette)
+    
+    # TODO write sprite data
+    
+    if len(tiles) > 0:
+        write_tile_data(args.output_path, tiles, tile_palette)
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
     parser.add_argument("-t", "--bg-tiles", metavar="background tile file path", dest="bg_tile_path", help="path to background tiles file")
@@ -23,24 +44,3 @@ def parse_args():
         parser.error("The background tile file path, background file path, and sprite tile path must all be unique")
 
     return args
-
-def main():
-    args = parse_args()
-
-    tiles = []
-    tile_palette = []
-    sprite_palette = []
-
-    if args.bg_tile_path:
-        tiles, tile_palette = read_tile_sheet(args.bg_tile_path)
-
-    # TODO read background, produce tilemap, update tiles & tile palette
-
-    # TODO read sprite sheet
-
-    write_palette_data(args.output_path, tile_palette, sprite_palette)
-    
-    # TODO write sprite data
-    
-    if len(tiles) > 0:
-        write_tile_data(args.output_path, tiles, tile_palette)
