@@ -1,6 +1,41 @@
-# SMS Data Gen
+# SMS Data Gen Tool
 
-Produces image data for SMS games written in WLA assembler.
+SMS game image data generator.
+
+Produces color palettes, tile patterns, sprite patterns, and a tilemap in a format that can be used in an SMS game written in WLA Z80 assembler.
+
+## Operation
+
+The tool takes as input (at least one of) the following image files:
+* Background file  
+  Image file showing the background of the game
+* Background tiles file  
+  Image file containing 8x8 background tiles usable in the background
+* Sprites file  
+  Image file containing 8x8 sprites
+
+See [test images](./test_images) for examples.
+
+The following data files are generated:
+* palette.asm
+* tile_patterns.asm
+* tilemap.asm
+
+The generated tile patterns data file includes all the tiles from the background tiles file, in the order they are found.
+These are followed by all the unique tiles found in the background file.
+
+The tool generates tile and sprite patterns as distinct sets with no overlap.
+The tilemap exlusively uses the tile patterns, and the first 16 colors of the palette.
+
+A maximum of 256 background tiles and 192 sprites can be produced.
+
+There is no support for priority tiles.
+
+## Requirements
+
+Python >= 3.14
+
+(Earlier versions may work but have not been not tested)
 
 ## Setup
 
@@ -15,25 +50,21 @@ pip install -r requirements.txt
 ```
 python main.py <arguments>
 
-Arguments:
-  -t, --bg-tiles <background tile file path>
-      path to background tiles file
-  -b, --bg <background file path>
-      path to background file
-  -s, --sprite-tiles <sprite tile path>
-      path to sprite tile file
-  -o, --out <output directory path>
-      output directory path; default '.'
+arguments:
+  -b, --bg        background file path
+  -t, --bg-tiles  background tiles file path
+  -s, --sprites   sprites file path
+  -o, --out       output directory path
 ```
 
-At least one of `<background tile file path>`, `<background file path>`, and `<sprite tile path>` must be supplied.
+At least one of the background file path, background tiles file path and sprites file path must be supplied.
 
-The `<background tile file path>`, `<background file path>`, and `<sprite tile path>` must all be unique.
+The background file path, background tiles file path and sprites file path must all be unique.
 
 ### Example
 
 ```
-python main.py -t test_images/tiles.png -b test_images/background.png -s test_images/sprites.png -o output
+python main.py -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
 ```
 
 ## Test
@@ -41,19 +72,3 @@ python main.py -t test_images/tiles.png -b test_images/background.png -s test_im
 ```
 python -m pytest tests/
 ```
-
-## Operation
-
-* Reads the the `bg-tiles`, `tilemap` & `sprites` PNG files
-* Writes palette data to `palette.asm`
-  * Tile palette (first 16 bytes) includes all colors in the tiles & tilemap files 
-  * Sprite palette (last 16 bytes) includes all colors in the sprites file
-* Writes tile pattern data to `tiles.asm`
-  * Tile patterns found in the `tiles` file are included first
-  * Patterns from the `tilemap` file follow immediately after
-    (any patterns that are the same as, or are mirror images of, previously encountered tiles are omitted)
-  * If the `tiles` PNG file doesn't contain all the tiles in the order  they are positioned in `tiles.asm`, produces a new one PNG that does
-* Writes sprite pattern data to `sprites.asm`
-  * Any sprite tiles that are the same as previously encountered sprite tiles are omitted
-* Writes a tilemap to `tilemap.asm`
-
