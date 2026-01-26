@@ -1,22 +1,23 @@
 import argparse
 from sms_data_gen.tiles import read_tile_sheet, write_tile_data
 from sms_data_gen.palette import write_palette_data
+from sms_data_gen.tilemap import read_background, write_tilemap_data
 
 def main():
     args = parse_args()
 
-    tiles = []
-    tile_palette = []
-    sprite_palette = []
-
     if args.bg_tile_path:
         tiles, tile_palette = read_tile_sheet(args.bg_tile_path)
 
-    # TODO read background, produce tilemap, update tiles & tile palette
+    if args.bg_path:
+        tilemap = read_background(args.bg_path, tiles, tile_palette)
 
     # TODO read sprite sheet
 
-    write_palette_data(args.output_path, tile_palette, sprite_palette)
+    write_palette_data(args.output_path, tile_palette, [])
+    
+    if args.bg_path:
+        write_tilemap_data(args.output_path, tilemap)
     
     # TODO write sprite data
     

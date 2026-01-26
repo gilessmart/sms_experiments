@@ -1,14 +1,13 @@
 import sys
-import os
 from PIL import Image
+from sms_data_gen.color import is_sms_color
 from sms_data_gen.utils import group, write_file
 
-VALID_SMS_RGB_VALUES = {0, 85, 170, 255}
-TILE_SIZE=8
+TILE_SIZE = 8
 
 def read_tile_sheet(file_path):
     try:
-        img = Image.open(file_path).convert("RGB")
+        img = Image.open(file_path).convert("RGBA")
     except Exception as e:
         print(f"Error: Could not open tiles file: {file_path}\n{e}")
         sys.exit(1)
@@ -21,17 +20,13 @@ def read_tile_sheet(file_path):
 
 def validate_colors(colors):
     if len(colors) > 16:
-        print("Error: tiles file has more than 16 colors")
+        print("Error: tiles file has more than 16 unique colors")
         sys.exit(1)
     
     for color in colors:
         if not is_sms_color(color):
-            print(f"Error: tiles has a color that isn't a valid SMS color")
+            print(f"Error: tiles file uses a color that isn't a valid SMS color ({color})")
             sys.exit(1)
-
-def is_sms_color(color):
-    r, g, b = color[:3]
-    return all(c in VALID_SMS_RGB_VALUES for c in (r, g, b))
 
 def extract_tiles(img):
     tiles = []
