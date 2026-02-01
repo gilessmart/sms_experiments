@@ -40,7 +40,7 @@ def main():
 
     write_palettes(args.output_dir_path, bg_tile_palette, sprite_palette)
 
-    if not bg_tile_palette.is_empty():
+    if not bg_tile_patterns.is_empty():
         write_bg_tile_patterns(args.output_dir_path, bg_tile_patterns, bg_tile_palette)
     
     if not tilemap.is_empty():

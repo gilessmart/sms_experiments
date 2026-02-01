@@ -40,7 +40,10 @@ class PatternList:
             pattern_bytes = _get_pattern_bytes(pattern, palette)
             byte_values.extend(pattern_bytes)
         return bytes(byte_values)
-    
+
+    def is_empty(self) -> bool:
+        return len(self._patterns) == 0
+
 # Planar conversion
 
 def _get_pattern_bytes(pattern: Image.Image, palette: Palette) -> bytes:

@@ -35,9 +35,6 @@ class Palette:
         byte_values = [to_6_bit_color(color) for color in self._colors]
         byte_values += [0] * (16 - len(self._colors))
         return bytes(byte_values)
-
-    def is_empty(self) -> bool:
-        return len(self._colors) == 0
     
     def palette_index(self, color: RGB) -> int:
         return self._colors.index(color)
