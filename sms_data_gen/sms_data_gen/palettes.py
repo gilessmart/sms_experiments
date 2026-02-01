@@ -25,19 +25,20 @@ class Palette:
         self._colors.append(color)
 
     def get_bytes(self) -> bytes:
-        def to_2_bit_color(ch_val: int) -> int:
-            return {85: 1, 170: 2, 255: 3}.get(ch_val, 0)
-
-        def to_6_bit_color(color: RGB):
-            r, g, b = color
-            return to_2_bit_color(b) << 4 | to_2_bit_color(g) << 2 | to_2_bit_color(r)
-
-        byte_values = [to_6_bit_color(color) for color in self._colors]
+        byte_values = [_to_6_bit_color(color) for color in self._colors]
         byte_values += [0] * (16 - len(self._colors))
         return bytes(byte_values)
     
     def palette_index(self, color: RGB) -> int:
         return self._colors.index(color)
+    
+# Color conversion
+def _to_6_bit_color(color: RGB) -> int:
+    def to_2_bit_value(ch_val: int) -> int:
+        return {85: 1, 170: 2, 255: 3}.get(ch_val, 0)
+    
+    r, g, b = color
+    return to_2_bit_value(b) << 4 | to_2_bit_value(g) << 2 | to_2_bit_value(r)
 
 # ASM output
 
