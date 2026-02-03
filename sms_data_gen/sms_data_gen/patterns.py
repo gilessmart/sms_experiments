@@ -1,10 +1,9 @@
 from itertools import batched
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 from PIL import Image
 
-from sms_data_gen.colors import to_rgb
+from sms_data_gen.colors import RGBA, as_rgba
 from sms_data_gen.file_io import write_file
-from sms_data_gen.palettes import Palette
 
 class PatternList:
     _capacity: int
@@ -13,6 +12,10 @@ class PatternList:
     def __init__(self, capacity: int) -> None:
         self._capacity = capacity
         self._patterns = []
+
+    def add_patterns(self, patterns: list[Image.Image]) -> None:
+        for pattern in patterns:
+            self.add_pattern(pattern)
 
     def add_pattern(self, pattern: Image.Image) -> int:
         if len(self._patterns) >= self._capacity:
@@ -34,10 +37,10 @@ class PatternList:
         
         return None
 
-    def get_bytes(self, palette: Palette) -> bytes:
+    def get_bytes(self, get_palette_index: Callable[[RGBA], int]) -> bytes:
         byte_values = []
         for pattern in self._patterns:
-            pattern_bytes = _get_pattern_bytes(pattern, palette)
+            pattern_bytes = _get_pattern_bytes(pattern, get_palette_index)
             byte_values.extend(pattern_bytes)
         return bytes(byte_values)
 
@@ -46,12 +49,12 @@ class PatternList:
 
 # Planar conversion
 
-def _get_pattern_bytes(pattern: Image.Image, palette: Palette) -> bytes:
+def _get_pattern_bytes(pattern: Image.Image, get_palette_index: Callable[[RGBA], int]) -> bytes:
     """Generates the planar bytes for an 8 pixel wide image"""
     tile_bytes = []
-    pixel_colors = [rgb for color in pattern.getdata() if (rgb := to_rgb(color)) is not None]
+    pixel_colors = [as_rgba(color) for color in pattern.getdata()]
     for line_colors in batched(pixel_colors, 8):
-        palette_indices = [palette.palette_index(c) for c in line_colors]
+        palette_indices = [get_palette_index(c) for c in line_colors]
         line_bytes = _get_pattern_line_bytes(palette_indices)
         tile_bytes.extend(line_bytes)
     return bytes(tile_bytes)
@@ -72,14 +75,14 @@ def _get_pattern_line_bytes(palette_indices: list[int]) -> list[int]:
 
 # ASM output
 
-def write_bg_tile_patterns(output_dir: str, patterns: PatternList, palette: Palette):
-    pattern_bytes = patterns.get_bytes(palette)
-    content = _create_asm_content(pattern_bytes)
-    write_file(output_dir, "tile_patterns.asm", content)
+def write_patterns(output_dir: str, filename: str, label: str, patterns: PatternList, get_palette_index: Callable[[RGBA], int]):
+    pattern_bytes = patterns.get_bytes(get_palette_index)
+    content = _create_asm_content(label, pattern_bytes)
+    write_file(output_dir, filename, content)
 
-def _create_asm_content(data: bytes):
+def _create_asm_content(label: str, data: bytes):
     """Format pattern data as assembly code."""
-    lines = ["TilePatterns:"]
+    lines = [f"{label}:"]
 
     # split into 32 byte patterns
     for pattern_num, pattern_data in enumerate(batched(data, 32)):
@@ -89,7 +92,7 @@ def _create_asm_content(data: bytes):
         lines.append(".db " + ",".join(_to_hex_bytes(pattern_data[:16])))
         lines.append(".db " + ",".join(_to_hex_bytes(pattern_data[16:])))
     
-    lines.append("TilePatternsEnd:")
+    lines.append(f"{label}End:")
     return "\n".join(lines) + "\n"
 
 def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:

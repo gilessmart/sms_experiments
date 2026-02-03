@@ -1,26 +1,31 @@
-from sms_data_gen.colors import is_sms_color
 from sms_data_gen.file_io import write_file
-from sms_data_gen.image_utils import RGB
+from sms_data_gen.image_utils import RGBA
 
 class Palette:
     _capacity: int
-    _colors: list[RGB]
+    _colors: list[RGBA]
 
     def __init__(self, capacity: int) -> None:
         self._capacity = capacity
         self._colors = []
 
-    def add_new_colors(self, colors: list[RGB]) -> None:
+    def add_new_colors(self, colors: list[RGBA]) -> None:
         for color in colors:
             self._add_color_if_new(color)
 
-    def _add_color_if_new(self, color: RGB) -> None:
+    def _add_color_if_new(self, color: RGBA) -> None:
         if color in self._colors:
             return
+        
+        self._add_color(color)
+
+    def add_colors(self, colors: list[RGBA]) -> None:
+        for color in colors:
+            self._add_color(color)
+
+    def _add_color(self, color):
         if len(self._colors) >= self._capacity:
             raise Exception("Tried to add color to already full palette")
-        if not is_sms_color(color):
-            raise Exception("Tried to add invalid color to palette", color)
         
         self._colors.append(color)
 
@@ -29,15 +34,15 @@ class Palette:
         byte_values += [0] * (16 - len(self._colors))
         return bytes(byte_values)
     
-    def palette_index(self, color: RGB) -> int:
+    def palette_index(self, color: RGBA) -> int:
         return self._colors.index(color)
     
 # Color conversion
-def _to_6_bit_color(color: RGB) -> int:
+def _to_6_bit_color(color: RGBA) -> int:
     def to_2_bit_value(ch_val: int) -> int:
         return {85: 1, 170: 2, 255: 3}.get(ch_val, 0)
     
-    r, g, b = color
+    r, g, b, _ = color
     return to_2_bit_value(b) << 4 | to_2_bit_value(g) << 2 | to_2_bit_value(r)
 
 # ASM output

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from itertools import batched
-from typing import Optional, Sequence
-from PIL import Image
+from typing import Sequence
 
 from sms_data_gen.file_io import write_file
 
