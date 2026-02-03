@@ -34,7 +34,7 @@ class Palette:
         byte_values += [0] * (16 - len(self._colors))
         return bytes(byte_values)
     
-    def palette_index(self, color: RGBA) -> int:
+    def index(self, color: RGBA) -> int:
         return self._colors.index(color)
     
 # Color conversion

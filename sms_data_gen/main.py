@@ -33,15 +33,18 @@ def main():
             validate_bg_tile_colors(colors)
             bg_tile_palette.add_new_colors(colors)
             
-            tiles = extract_tiles(img)
-            for tile in tiles:
-                pattern = bg_tile_patterns.find_equivalent_pattern(tile)
-                if pattern is None:
+            for tile in extract_tiles(img):
+                if idx := bg_tile_patterns.index(tile):
+                    tilemap.add_entry(TilemapEntry(idx, False, False))
+                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_LEFT_RIGHT)):
+                    tilemap.add_entry(TilemapEntry(idx, True, False))
+                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_TOP_BOTTOM)):
+                    tilemap.add_entry(TilemapEntry(idx, False, True))
+                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.FLIP_TOP_BOTTOM)):
+                    tilemap.add_entry(TilemapEntry(idx, True, True))
+                else:
                     index = bg_tile_patterns.add_pattern(tile)
                     tilemap.add_entry(TilemapEntry(index, False, False))
-                else:
-                    index, h_flip, v_flip = pattern
-                    tilemap.add_entry(TilemapEntry(index, h_flip, v_flip))
 
     # ingest the sprites file
     if args.sprites_file_path:
@@ -58,7 +61,7 @@ def main():
     write_palettes(args.output_dir_path, bg_tile_palette, sprite_palette)
 
     if not bg_tile_patterns.is_empty():
-        data = bg_tile_patterns.get_bytes(bg_tile_palette.palette_index)
+        data = bg_tile_patterns.get_bytes(bg_tile_palette.index)
         write_patterns_asm(args.output_dir_path, "tile_patterns.asm", "TilePatterns", data)
     
     if not tilemap.is_empty():
@@ -68,7 +71,7 @@ def main():
     if not sprite_patterns.is_empty():
         def get_sprite_palette_idx(color: RGBA):
             _, _, _, a = color
-            return sprite_palette.palette_index(color) if a == 255 else 0
+            return sprite_palette.index(color) if a == 255 else 0
         
         data = sprite_patterns.get_bytes(get_sprite_palette_idx)
         write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)

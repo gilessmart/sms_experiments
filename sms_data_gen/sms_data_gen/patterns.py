@@ -23,19 +23,9 @@ class PatternList:
         
         self._patterns.append(pattern)
         return len(self._patterns) - 1
-
-    def find_equivalent_pattern(self, candidate: Image.Image) -> Optional[tuple[int, bool, bool]]:
-        for pat_idx, pattern in enumerate(self._patterns):
-            if pattern == candidate:
-                return pat_idx, False, False
-            elif pattern == candidate.transpose(Image.Transpose.FLIP_LEFT_RIGHT):
-                return pat_idx, True, False
-            elif pattern == candidate.transpose(Image.Transpose.FLIP_TOP_BOTTOM):
-                return pat_idx, False, True
-            elif pattern == candidate.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.FLIP_TOP_BOTTOM):
-                return pat_idx, True, True
-        
-        return None
+    
+    def index(self, pattern: Image.Image) -> Optional[int]:
+        return next((i for i, candidate in enumerate(self._patterns) if candidate == pattern), None)
 
     def get_bytes(self, get_palette_index: Callable[[RGBA], int]) -> bytes:
         byte_values = []
