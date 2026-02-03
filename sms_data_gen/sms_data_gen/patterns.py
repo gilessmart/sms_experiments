@@ -75,9 +75,8 @@ def _get_pattern_line_bytes(palette_indices: list[int]) -> list[int]:
 
 # ASM output
 
-def write_patterns(output_dir: str, filename: str, label: str, patterns: PatternList, get_palette_index: Callable[[RGBA], int]):
-    pattern_bytes = patterns.get_bytes(get_palette_index)
-    content = _create_asm_content(label, pattern_bytes)
+def write_patterns_asm(output_dir: str, filename: str, label: str, data: bytes):
+    content = _create_asm_content(label, data)
     write_file(output_dir, filename, content)
 
 def _create_asm_content(label: str, data: bytes):

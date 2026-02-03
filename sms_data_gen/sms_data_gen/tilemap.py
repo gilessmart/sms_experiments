@@ -41,12 +41,11 @@ class Tilemap:
 
 # ASM output
 
-def write_tilemap(output_dir: str, tilemap: Tilemap) -> None:
-    data = tilemap.get_bytes()
-    content = _create_tilemap_file_content(data)
+def write_tilemap_asm(output_dir: str, data: bytes) -> None:
+    content = _create_asm_content(data)
     write_file(output_dir, "tilemap.asm", content)
 
-def _create_tilemap_file_content(data: bytes):
+def _create_asm_content(data: bytes):
     lines = ["Tilemap:"]
 
     # split the data into rows of the tilemap, which are 2 bytes * 32 tiles

@@ -2,10 +2,10 @@ import argparse
 from PIL import Image
 
 from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
-from sms_data_gen.patterns import PatternList, write_patterns
+from sms_data_gen.patterns import PatternList, write_patterns_asm
 from sms_data_gen.image_utils import extract_tiles, get_colors_as_rgba
 from sms_data_gen.palettes import Palette, write_palettes
-from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap
+from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
 
 def main():
     args = parse_args()
@@ -58,17 +58,20 @@ def main():
     write_palettes(args.output_dir_path, bg_tile_palette, sprite_palette)
 
     if not bg_tile_patterns.is_empty():
-        write_patterns(args.output_dir_path, "tile_patterns.asm", "TilePatterns", bg_tile_patterns, bg_tile_palette.palette_index)
+        data = bg_tile_patterns.get_bytes(bg_tile_palette.palette_index)
+        write_patterns_asm(args.output_dir_path, "tile_patterns.asm", "TilePatterns", data)
     
     if not tilemap.is_empty():
-        write_tilemap(args.output_dir_path, tilemap)
+        data = tilemap.get_bytes()
+        write_tilemap_asm(args.output_dir_path, data)
     
     if not sprite_patterns.is_empty():
         def get_sprite_palette_idx(color: RGBA):
             _, _, _, a = color
             return sprite_palette.palette_index(color) if a == 255 else 0
         
-        write_patterns(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", sprite_patterns, get_sprite_palette_idx)
+        data = sprite_patterns.get_bytes(get_sprite_palette_idx)
+        write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)
 
     # TODO - output tile pattern image
 
