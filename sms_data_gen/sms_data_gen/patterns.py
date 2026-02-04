@@ -1,4 +1,6 @@
 from itertools import batched
+from math import ceil
+from os import path, makedirs
 from typing import Callable, Optional, Sequence
 from PIL import Image
 
@@ -36,6 +38,9 @@ class PatternList:
 
     def is_empty(self) -> bool:
         return len(self._patterns) == 0
+    
+    def get_patterns(self) -> list[Image.Image]:
+        return self._patterns
 
 # Planar conversion
 
@@ -86,3 +91,36 @@ def _create_asm_content(label: str, data: bytes):
 
 def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:
     return [f"${byte_val:02x}" for byte_val in byte_values]
+
+# Image output
+
+def write_bg_tiles_img(output_dir: str, bg_tiles_file_path: str, patterns: list[Image.Image]):
+    tiles_per_row = 16
+    tile_size = 8
+    cols = min(len(patterns), tiles_per_row)
+    rows = ceil(len(patterns) / tiles_per_row)
+
+    out_width = cols * tile_size
+    out_height = rows * tile_size
+
+    out_img = Image.new("RGBA", (out_width, out_height), (0, 0, 0, 255))
+    for idx, tile in enumerate(patterns):
+        x = (idx % tiles_per_row) * tile_size
+        y = (idx // tiles_per_row) * tile_size
+        out_img.paste(tile, (x, y))
+
+    if output_dir is None:
+        output_dir = "."
+    else:
+        makedirs(output_dir, exist_ok=True)
+
+    if bg_tiles_file_path:
+        filename = path.basename(bg_tiles_file_path)
+        stem, ext = path.splitext(filename)
+        output_file = stem + ".out" + ext
+    else:
+        output_file = "background-tiles.out.png"
+    out_path = path.join(output_dir, output_file)
+    out_img.save(out_path)
+
+    print(f"Wrote {out_path}")

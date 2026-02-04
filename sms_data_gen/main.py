@@ -2,7 +2,7 @@ import argparse
 from PIL import Image
 
 from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
-from sms_data_gen.patterns import PatternList, write_patterns_asm
+from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
 from sms_data_gen.image_utils import extract_tiles, get_colors_as_rgba
 from sms_data_gen.palettes import Palette, write_palettes
 from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
@@ -17,6 +17,7 @@ def main():
     sprite_patterns = PatternList(192)
     
     # ingest the background tiles file
+    original_bg_tile_count = 0
     if args.bg_tiles_file_path:
         with Image.open(args.bg_tiles_file_path).convert("RGBA") as img:
             colors = get_colors_as_rgba(img)
@@ -24,6 +25,7 @@ def main():
             bg_tile_palette.add_colors(colors)
 
             tiles = extract_tiles(img)
+            original_bg_tile_count = len(tiles)
             bg_tile_patterns.add_patterns(tiles)
 
     # ingest the background file
@@ -76,7 +78,10 @@ def main():
         data = sprite_patterns.get_bytes(get_sprite_palette_idx)
         write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)
 
-    # TODO - output tile pattern image
+    # Output tile pattern image if new patterns were added
+    patterns = bg_tile_patterns.get_patterns()
+    if len(patterns) > original_bg_tile_count:
+        write_bg_tiles_img(args.output_dir_path, args.bg_tiles_file_path, patterns)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
