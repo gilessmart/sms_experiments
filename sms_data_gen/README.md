@@ -34,6 +34,12 @@ At least one of the background file path, background tiles file path and sprites
 
 The background file path, background tiles file path and sprites file path must all be unique.
 
+### Example
+
+```
+python main.py -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
+```
+
 ## Operation
 
 The tool takes as input (at least one of) the following image files:
@@ -48,31 +54,34 @@ See [test images](./test_images) for examples.
 
 The following files are generated:
 
-`palette.asm` - tile and sprite palettes
+### `palette.asm`
 
-* The tile palette can contain up to 16 colors.
-* The sprite palette reserves one entry for tranparent pixels leaving room for 15 other colors
+Tile and sprite palettes.  
+Tile palette can contain up to 16 colors.  
+Sprite palette reserves one entry for tranparent pixels leaving room for 15 other colors.
 
-`tile_patterns.asm` - patterns extracted from the *background tiles file*, followed by tiles from the *background file*
+### `tile_patterns.asm`
 
-* All tiles from the background tiles file are included.
-* Tiles from the background file that match a previous tile, or are horiontal or vertical reflections of a previous tile are not included.
-* A maximum of 256 tile patterns can be generated.
+Patterns extracted from the *background tiles file*, followed by tiles from the *background file*.  
+All tiles from the background tiles file are included.  
+Tiles from the background file that match a previous tile, or are horiontal or vertical reflections of a previous tile are not included.  
+A maximum of 256 tile patterns can be generated.
 
-`tilemap.asm` - tilemap / name table
+### `tile_patterns.png`
 
-* The tilemap exlusively uses the tile patterns, and the first 16 colors of the palette.
-* There is no support for priority tiles.
+Same patterns as `tile_patterns.asm`, in a PNG file.  
+Gives a visual reference for which pattern is at each index.
 
-`sprite_patterns.asm` - patterns extracted from the *sprites file*
+### `tilemap.asm`
 
-* A maximum of 192 sprites can be generated.
+Tilemap / name table.  
+Uses the tile patterns, and the sprite palette. (Use of sprite tiles and the sprite palette in the tilemap is possible on SMS but unsupported by this tool.)  
+Priority tiles are unsupported.
 
-### Example
+### `sprite_patterns.asm`
 
-```
-python main.py -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
-```
+Patterns extracted from the *sprites file*.  
+A maximum of 192 sprites can be generated.  
 
 ## Test
 

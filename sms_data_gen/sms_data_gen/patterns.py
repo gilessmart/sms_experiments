@@ -95,7 +95,7 @@ def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:
 
 # Image output
 
-def write_bg_tiles_img(output_dir: str, bg_tiles_file_path: str, patterns: list[Image.Image]):
+def write_bg_tiles_img(output_dir: str, patterns: list[Image.Image]):
     tiles_per_row = 16
     tile_size = 8
     cols = min(len(patterns), tiles_per_row)
@@ -115,13 +115,7 @@ def write_bg_tiles_img(output_dir: str, bg_tiles_file_path: str, patterns: list[
     else:
         makedirs(output_dir, exist_ok=True)
 
-    if bg_tiles_file_path:
-        filename = path.basename(bg_tiles_file_path)
-        stem, ext = path.splitext(filename)
-        output_file = stem + ".out" + ext
-    else:
-        output_file = "background-tiles.out.png"
-    out_path = path.join(output_dir, output_file)
+    out_path = path.join(output_dir, "tile_patterns.png")
     out_img.save(out_path)
 
     print(f"Wrote {out_path}")

@@ -81,7 +81,7 @@ def main():
     # Output tile pattern image if new patterns were added
     patterns = bg_tile_patterns.get_patterns()
     if len(patterns) > original_bg_tile_count:
-        write_bg_tiles_img(args.output_dir_path, args.bg_tiles_file_path, patterns)
+        write_bg_tiles_img(args.output_dir_path, patterns)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
