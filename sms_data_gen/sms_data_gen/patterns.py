@@ -71,7 +71,7 @@ def _get_pattern_line_bytes(palette_indices: list[int]) -> list[int]:
 
 # ASM output
 
-def write_patterns_asm(output_dir: str, filename: str, label: str, data: bytes):
+def write_patterns_asm(output_dir: Optional[str], filename: str, label: str, data: bytes):
     content = _create_asm_content(label, data)
     write_file(output_dir, filename, content)
 
@@ -95,7 +95,7 @@ def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:
 
 # Image output
 
-def write_bg_tiles_img(output_dir: str, patterns: list[Image.Image]):
+def write_bg_tiles_img(output_dir: Optional[str], patterns: list[Image.Image]):
     tiles_per_row = 16
     tile_size = 8
     cols = min(len(patterns), tiles_per_row)

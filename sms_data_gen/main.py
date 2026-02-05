@@ -1,6 +1,6 @@
-import argparse
 from PIL import Image
 
+from sms_data_gen.cli import parse_args
 from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
 from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
 from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba
@@ -82,28 +82,6 @@ def main():
     patterns = bg_tile_patterns.get_patterns()
     if len(patterns) > original_bg_tile_count:
         write_bg_tiles_img(args.output_dir_path, patterns)
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Image Data Generator for SMS Games")
-    parser.add_argument("-b", "--bg", metavar="background file path", dest="bg_file_path", help="path to background file")
-    parser.add_argument("-t", "--bg-tiles", metavar="background tiles file path", dest="bg_tiles_file_path", help="path to background tiles file")
-    parser.add_argument("-s", "--sprites", metavar="sprites file path", dest="sprites_file_path", help="path to sprites file")
-    parser.add_argument("-o", "--out", metavar="output directory path", dest="output_dir_path", help="output directory path")
-    args = parser.parse_args()
-    
-    # ensure at least 1 file path is given
-    if not (args.sprites_file_path or args.bg_tiles_file_path or args.bg_file_path):
-        parser.error("At least one of the background file path, background tiles file path and sprites file path must be supplied")
-
-    # ensure file paths are unique
-    file_paths = []
-    if args.bg_tiles_file_path: file_paths.append(args.bg_tiles_file_path)
-    if args.bg_file_path: file_paths.append(args.bg_file_path)
-    if args.sprites_file_path: file_paths.append(args.sprites_file_path)
-    if len(file_paths) != len(set(file_paths)):
-        parser.error("The background file path, background tiles file path and sprites file path must all be unique")
-
-    return args
 
 def validate_bg_tile_colors(colors: list[RGBA]) -> None:  
     for color in colors:

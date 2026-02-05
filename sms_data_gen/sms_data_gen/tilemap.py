@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import batched
-from typing import Sequence
+from typing import Optional, Sequence
 
 from sms_data_gen.file_io import write_file
 
@@ -41,7 +41,7 @@ class Tilemap:
 
 # ASM output
 
-def write_tilemap_asm(output_dir: str, data: bytes) -> None:
+def write_tilemap_asm(output_dir: Optional[str], data: bytes) -> None:
     content = _create_asm_content(data)
     write_file(output_dir, "tilemap.asm", content)
 

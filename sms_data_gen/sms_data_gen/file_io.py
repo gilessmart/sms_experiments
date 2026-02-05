@@ -1,6 +1,7 @@
 import os
+from typing import Optional
 
-def write_file(output_dir: str, filename: str, content: str):
+def write_file(output_dir: Optional[str], filename: str, content: str):
     """Write content to a file."""
     if output_dir is None:
         output_dir = "."
