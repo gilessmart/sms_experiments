@@ -3,7 +3,7 @@ from PIL import Image
 
 from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
 from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
-from sms_data_gen.image_utils import extract_tiles, get_colors_as_rgba
+from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba
 from sms_data_gen.palettes import Palette, write_palettes
 from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
 
@@ -36,13 +36,13 @@ def main():
             bg_tile_palette.add_new_colors(colors)
             
             for tile in extract_tiles(img):
-                if idx := bg_tile_patterns.index(tile):
+                if (idx := bg_tile_patterns.index(tile)) is not None:
                     tilemap.add_entry(TilemapEntry(idx, False, False))
-                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_LEFT_RIGHT)):
+                elif (idx := bg_tile_patterns.index(flip_h(tile))) is not None:
                     tilemap.add_entry(TilemapEntry(idx, True, False))
-                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_TOP_BOTTOM)):
+                elif (idx := bg_tile_patterns.index(flip_v(tile))) is not None:
                     tilemap.add_entry(TilemapEntry(idx, False, True))
-                elif idx := bg_tile_patterns.index(tile.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.FLIP_TOP_BOTTOM)):
+                elif (idx := bg_tile_patterns.index(flip_hv(tile))) is not None:
                     tilemap.add_entry(TilemapEntry(idx, True, True))
                 else:
                     index = bg_tile_patterns.add_pattern(tile)

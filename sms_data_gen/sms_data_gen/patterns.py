@@ -6,6 +6,7 @@ from PIL import Image
 
 from sms_data_gen.colors import RGBA, as_rgba
 from sms_data_gen.file_io import write_file
+from sms_data_gen.image_utils import images_are_equal
 
 class PatternList:
     _capacity: int
@@ -27,7 +28,7 @@ class PatternList:
         return len(self._patterns) - 1
     
     def index(self, pattern: Image.Image) -> Optional[int]:
-        return next((i for i, candidate in enumerate(self._patterns) if candidate == pattern), None)
+        return next((i for i, candidate in enumerate(self._patterns) if images_are_equal(candidate, pattern)), None)
 
     def get_bytes(self, get_palette_index: Callable[[RGBA], int]) -> bytes:
         byte_values = []
