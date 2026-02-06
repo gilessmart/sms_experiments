@@ -48,7 +48,7 @@ class PatternList:
 def _get_pattern_bytes(pattern: Image.Image, get_palette_index: Callable[[RGBA], int]) -> bytes:
     """Generates the planar bytes for an 8 pixel wide image"""
     tile_bytes = []
-    pixel_colors = [as_rgba(color) for color in pattern.getdata()]
+    pixel_colors = [as_rgba(color) for color in pattern.get_flattened_data()]
     for line_colors in batched(pixel_colors, 8):
         palette_indices = [get_palette_index(c) for c in line_colors]
         line_bytes = _get_pattern_line_bytes(palette_indices)
