@@ -104,7 +104,7 @@ def write_bg_tiles_img(output_dir: Optional[str], patterns: list[Image.Image]):
     out_width = cols * tile_size
     out_height = rows * tile_size
 
-    out_img = Image.new("RGBA", (out_width, out_height), (0, 0, 0, 255))
+    out_img = Image.new("RGBA", (out_width, out_height), (0, 0, 0, 0))
     for idx, tile in enumerate(patterns):
         x = (idx % tiles_per_row) * tile_size
         y = (idx // tiles_per_row) * tile_size

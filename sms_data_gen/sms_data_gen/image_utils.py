@@ -1,6 +1,6 @@
 from PIL import Image
 
-from sms_data_gen.colors import RGBA, as_rgba
+from sms_data_gen.colors import RGBA, as_rgba, is_transparent
 
 def extract_tiles(img: Image.Image, size = 8) -> list[Image.Image]:
     width, height = img.size
@@ -27,3 +27,11 @@ def flip_v(img: Image.Image) -> Image.Image:
 
 def flip_hv(img: Image.Image) -> Image.Image:
     return flip_v(flip_h(img))
+
+def img_is_transparent(img: Image.Image) -> bool:
+    pixels = get_colors_as_rgba(img)
+    return all(is_transparent(pixel) for pixel in pixels)
+
+def remove_trailing_transparent_imgs(imgs: list[Image.Image]):
+    while img_is_transparent(imgs[len(imgs) - 1]):
+        imgs.pop()

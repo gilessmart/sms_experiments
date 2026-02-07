@@ -3,7 +3,7 @@ from PIL import Image
 from sms_data_gen.cli import parse_args
 from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
 from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
-from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba
+from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba, remove_trailing_transparent_imgs
 from sms_data_gen.palettes import Palette, write_palettes
 from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
 
@@ -19,12 +19,13 @@ def main():
     # ingest the background tiles file
     if args.bg_tiles_file_path:
         with Image.open(args.bg_tiles_file_path).convert("RGBA") as img:
-            colors = get_colors_as_rgba(img)
-            validate_bg_tile_colors(colors)
-            bg_tile_palette.add_colors(colors)
-
             tiles = extract_tiles(img)
-            bg_tile_patterns.add_patterns(tiles)
+            remove_trailing_transparent_imgs(tiles)
+            for tile in tiles:
+                colors = get_colors_as_rgba(tile)
+                validate_bg_tile_colors(colors)
+                bg_tile_palette.add_new_colors(colors)
+                bg_tile_patterns.add_pattern(tile)
 
     # ingest the background file
     if args.bg_file_path:
@@ -56,6 +57,7 @@ def main():
             sprite_palette.add_colors([(0, 0, 0, 0)] + colors)
 
             tiles = extract_tiles(img)
+            remove_trailing_transparent_imgs(tiles)
             sprite_patterns.add_patterns(tiles)
     
     write_palettes(args.output_dir_path, bg_tile_palette, sprite_palette)
