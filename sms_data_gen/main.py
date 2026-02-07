@@ -17,7 +17,6 @@ def main():
     sprite_patterns = PatternList(192)
     
     # ingest the background tiles file
-    original_bg_tile_count = 0
     if args.bg_tiles_file_path:
         with Image.open(args.bg_tiles_file_path).convert("RGBA") as img:
             colors = get_colors_as_rgba(img)
@@ -25,7 +24,6 @@ def main():
             bg_tile_palette.add_colors(colors)
 
             tiles = extract_tiles(img)
-            original_bg_tile_count = len(tiles)
             bg_tile_patterns.add_patterns(tiles)
 
     # ingest the background file
@@ -63,8 +61,12 @@ def main():
     write_palettes(args.output_dir_path, bg_tile_palette, sprite_palette)
 
     if not bg_tile_patterns.is_empty():
+        # Output bg tile pattern data
         data = bg_tile_patterns.get_bytes(bg_tile_palette.index)
         write_patterns_asm(args.output_dir_path, "tile_patterns.asm", "TilePatterns", data)
+        # Output bg tile pattern image
+        patterns = bg_tile_patterns.get_patterns()
+        write_bg_tiles_img(args.output_dir_path, patterns)
     
     if not tilemap.is_empty():
         data = tilemap.get_bytes()
@@ -77,11 +79,6 @@ def main():
         
         data = sprite_patterns.get_bytes(get_sprite_palette_idx)
         write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)
-
-    # Output tile pattern image if new patterns were added
-    patterns = bg_tile_patterns.get_patterns()
-    if len(patterns) > original_bg_tile_count:
-        write_bg_tiles_img(args.output_dir_path, patterns)
 
 def validate_bg_tile_colors(colors: list[RGBA]) -> None:  
     for color in colors:
