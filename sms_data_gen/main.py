@@ -88,7 +88,7 @@ def validate_bg_tile_colors(colors: list[RGBA]) -> None:
 def validate_sprite_colors(colors: list[RGBA]) -> None:
     for color in colors:
         if not is_transparent(color) and not is_opaque_sms_color(color):
-            raise Exception(f"{color} is not a valid color for a background tile")
+            raise Exception(f"{color} is not a valid color for a sprite tile")
 
 if __name__ == "__main__":
     main()
