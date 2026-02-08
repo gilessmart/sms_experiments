@@ -84,8 +84,6 @@
         ld bc, TilemapEnd - Tilemap
         call VDP_CopyData
 
-        ; TODO - setup sprite patterns
-
         ; initialise shadow SAT
         ld hl, ShadowSAT
         ld (hl), $d0 ; D0 terminates the table

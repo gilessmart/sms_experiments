@@ -1,15 +1,36 @@
 # Hello World
 
-Displays Hello World using sprites
+Displays Hello World! using background tiles.
 
 ## Dependencies
 
 * [WLA Assembler](https://github.com/vhelin/wla-dx)
+* [Python](https://www.python.org) (to regenerate tile / palette data)
 
-## Notes
+## Build
 
-* Uses SMS mode 4 (like most SMS games)
-* Tilemap is 32x28 tiles, each 8x8 pixels
-* Total resolution is 256 x 192 pixels
-* 16KB VRAM available for tile patterns (room for 512 32 byte patterns)
-* 12KB VRAM available for sprite patterns (room for 384 32 byte patterns)
+```sh
+make
+```
+
+## Regenerate tile / palette data
+
+Using the [SMS Data Gen](../sms_data_gen/) tool to regenerate the tile & palette data from a PNG image
+
+### Setup
+
+First time setup:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ../sms_data_gen
+```
+
+On subsequent setups, only `source .venv/bin/activate` is necessary.
+
+### Run
+
+```sh
+smsdatagen -b images/background.png -o data
+```
