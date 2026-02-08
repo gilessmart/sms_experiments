@@ -12,16 +12,32 @@ Python >= 3.14
 
 ## Setup
 
+First time setup:
+
 ```
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
+```
+
+On subsequent setups, only `source .venv/bin/activate` is necessary.
+
+## Run
+
+```
+smsdatagen -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
+```
+
+## Unit Test
+
+```
+pytest
 ```
 
 ## Usage
 
 ```
-python main.py <arguments>
+smsdatagen <arguments>
 
 arguments:
   -b, --bg        background file path
@@ -33,12 +49,6 @@ arguments:
 At least one of the **background file path**, **background tiles file path** and **sprites file path** must be supplied.
 
 The **background file path**, **background tiles file path** and **sprites file path** must all be unique.
-
-### Example
-
-```
-python main.py -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
-```
 
 ## Operation
 
@@ -95,12 +105,6 @@ The following files are written to the output directory:
   (Use of sprite tiles and the sprite palette in the tilemap is possible on SMS but isn't supported by this tool.)
 
 * The priority flag in the the tilemap is unsupported.
-
-## Test
-
-```
-python -m pytest tests/
-```
 
 ## Possible future enhancements
 

@@ -2,6 +2,13 @@
 name = "sms_data_gen"
 version = "0.1.0"
 requires-python = ">=3.14"
+dependencies = ["Pillow"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+smsdatagen = "sms_data_gen.main:main"
 
 [build-system]
 requires = ["setuptools"]
