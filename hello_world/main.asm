@@ -1,7 +1,7 @@
 .memorymap
     defaultslot 0
-  slot 0 $0000 $8000    ; 32K of ROM
-    slot 1 $c000 $2000  ; 8K of RAM
+    slot 0 $0000 $8000  ; 32K ROM
+    slot 1 $c000 $2000  ; 8K RAM
 .endme
 
 .rombankmap
@@ -9,10 +9,6 @@
     banksize $8000
     banks 1
 .endro
-
-.ramsection "shadow_sat" slot 1
-    ShadowSAT: dsb 256
-.ends
 
 .bank 0
 .slot 0
@@ -84,16 +80,11 @@
         ld bc, TilemapEnd - Tilemap
         call VDP_CopyData
 
-        ; initialise shadow SAT
-        ld hl, ShadowSAT
-        ld (hl), $d0 ; D0 terminates the table
-
-        ; set SAT
+        ; setup empty SAT table
         ld hl, VDP_CMD_VRAM_WRITE | $3f00
         call VDP_SetAddress
-        ld hl, ShadowSAT
-        ld bc, 256
-        call VDP_CopyData
+        ld a, $d0 ; y = $d0 terminates the table
+        out (VDP_DATA_PORT), a
 
         ; turn on display
         ld hl, $8100 + %11100000 ; 16K VRAM, enable display, frame interrupts
