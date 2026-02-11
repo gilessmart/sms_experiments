@@ -94,20 +94,25 @@
         ld bc, SpritePatternsEnd - SpritePatterns
         call VDP_CopyData
 
-        ; draw sonic        
-        SPRITE_SETSPRITE 0, $00, 64+0, 115+0
-        SPRITE_SETSPRITE 1, $01, 64+8, 115+0
-        SPRITE_SETSPRITE 2, $10, 64+0, 115+8
-        SPRITE_SETSPRITE 3, $11, 64+8, 115+8
-        SPRITE_SETSPRITE 4, $20, 64+0, 115+16
-        SPRITE_SETSPRITE 5, $21, 64+8, 115+16
-        SPRITE_SETSPRITE 6, $30, 64+0, 115+24
-        SPRITE_SETSPRITE 7, $31, 64+8, 115+24
-        SPRITE_SETSPRITE 8, $32, 64+16, 115+24
+        ; draw sprites
+        ld bc, 0        ; set SAT index = 0
+
+        ; draw sonic at (64, 115)
+        ld hl, Sonic
+        ld a, 9
+        ld de, (64 << 8) | 115
+        call SPRITE_SetSprites
+
+        ; draw tails at (168, 51)
+        ld hl, Tails
+        ld a, 8
+        ld de, (168 << 8) | 51
+        call SPRITE_SetSprites
 
         ; terminate shadow SAT
-        ld hl, ShadowSAT + 9
-        ld (hl), $d0 ; D0 terminates the table
+        ld hl, ShadowSAT
+        add hl, bc      ; hl = adr of next y position
+        ld (hl), $d0    ; D0 terminates the table
 
         ; write SAT
         ld hl, VDP_CMD_VRAM_WRITE | $3f00
@@ -122,6 +127,29 @@
 
         ; loop
     -:  jr -
+
+    Sonic:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $00
+    .db 0, 8, $01
+    .db 8, 0, $10
+    .db 8, 8, $11
+    .db 16, 0, $20
+    .db 16, 8, $21
+    .db 24, 0, $30
+    .db 24, 8, $31
+    .db 24, 16, $32
+
+    Tails:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $08
+    .db 0, 8, $09
+    .db 8, 0, $18
+    .db 8, 8, $19
+    .db 8, 16, $1a
+    .db 16, 0, $28
+    .db 16, 8, $29
+    .db 16, 16, $2a
 
     .include "data/palette.asm"
     .include "data/tile_patterns.asm"
