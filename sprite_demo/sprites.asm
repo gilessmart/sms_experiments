@@ -29,49 +29,40 @@ SPRITE_SetSprite:
 
 ; Writes a set of (up to 256) sprites to shadow SAT
 ; Params: 
-;   hl = start of sprite data
+;   ix = start of sprite data
 ;   a = number of sprites to write
 ;   b = must be 0
 ;   c = SAT index counter
 ;   d = x position
 ;   e = y position
-; Clobbers: hl, a, e
+; Clobbers: ix, hl, a
 ; Returns:
 ;   c = is incremented by the number of sprites written
 SPRITE_SetSprites:
     ex af, af'
 
-    ld a, (hl)                  ; a = relative y coordinate
+    ld a, (ix+0)                ; a = relative y coordinate
     add a, e                    ; add base y coordinate
-    push hl
-        ld hl, ShadowSAT
-        add hl, bc              ; add SAT index
-        ld (hl), a              ; store the y coordinate
-    pop hl
+    ld hl, ShadowSAT
+    add hl, bc                  ; add SAT index
+    ld (hl), a                  ; store the y coordinate
     
-    inc hl                      ; hl now points at x value
-    ld a, (hl)                  ; a = relative x coordinate
+    inc ix                      ; ix now points at x value
+    ld a, (ix+0)                ; a = relative x coordinate
     add a, d                    ; add base y coordinate
-    push hl
-        ld hl, ShadowSAT + $80
-        add hl, bc              ; add SAT index
-        add hl, bc              ; add SAT index again
-        ld (hl), a              ; store the x coordinate
-    pop hl
+    ld hl, ShadowSAT + $80
+    add hl, bc                  ; add SAT index
+    add hl, bc                  ; add SAT index again
+    ld (hl), a                  ; store the x coordinate
     
-    inc hl                      ; hl now points at sprite pattern index
-    ld a, (hl)                  ; a = sprite pattern index
-    push hl
-        ld hl, ShadowSAT + $80
-        add hl, bc              ; add SAT index
-        add hl, bc              ; add SAT index again
-        inc hl                  ; hl now points to sprite index position
-        ld (hl), a              ; store the sprite index
-    pop hl
+    inc ix                      ; ix now points at sprite pattern index
+    ld a, (ix+0)                ; a = sprite pattern index
+    inc hl                      ; hl now points to sprite index position
+    ld (hl), a                  ; store the sprite index
     
     ex af, af'
     
-    inc hl                      ; hl now points at next y value
+    inc ix                      ; ix now points at next y value
     inc c                       ; increment SAT index counter
     dec a                       ; decrement remaining sprites
     jr nz, SPRITE_SetSprites    ; if a != 0 then repeat

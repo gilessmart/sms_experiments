@@ -98,13 +98,13 @@
         ld bc, 0        ; set SAT index = 0
 
         ; draw sonic at (64, 115)
-        ld hl, Sonic
+        ld ix, Sonic
         ld a, 9
         ld de, (64 << 8) | 115
         call SPRITE_SetSprites
 
         ; draw tails at (168, 51)
-        ld hl, Tails
+        ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
         call SPRITE_SetSprites
