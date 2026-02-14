@@ -112,3 +112,6 @@ The following files are written to the output directory:
   The user would need to specify:
   * a color that would be used as the first color in the background palette
   * a list tile coordinates in the background file to be considered priority tiles
+
+* **Allow colors that are close to valid SMS colors**  
+  Or add a separate script that fixes images with invalid colors
