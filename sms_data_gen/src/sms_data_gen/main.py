@@ -1,7 +1,7 @@
 from PIL import Image
 
 from sms_data_gen.cli import parse_args
-from sms_data_gen.colors import RGBA, is_opaque_sms_color, is_transparent
+from sms_data_gen.colors import RGBA, is_opaque, is_transparent, is_sms_color
 from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
 from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba, remove_trailing_transparent_imgs
 from sms_data_gen.palettes import Palette, write_palettes
@@ -52,9 +52,11 @@ def main():
         with Image.open(args.sprites_file_path).convert("RGBA") as img:
             colors = get_colors_as_rgba(img)
             validate_sprite_colors(colors)
-            # palette idx 0 reserved for transparent pixels in sprites
-            # so we populate it with a placeholder color
-            sprite_palette.add_colors([(0, 0, 0, 0)] + colors)
+            # SMS uses palette index 0 to denote transparency,
+            # so we populate it with a placeholder color,
+            # and ensure we don't occupy one of the other indices with transparency
+            opaque_colors = [color for color in colors if is_opaque(color)]
+            sprite_palette.add_colors([(0, 0, 0, 0)] + opaque_colors)
 
             tiles = extract_tiles(img)
             remove_trailing_transparent_imgs(tiles)
@@ -84,12 +86,14 @@ def main():
 
 def validate_bg_tile_colors(colors: list[RGBA]) -> None:  
     for color in colors:
-        if not is_opaque_sms_color(color):
+        is_valid = is_opaque(color) and is_sms_color(color)
+        if not is_valid:
             raise Exception(f"{color} is not a valid color for a background tile")
         
 def validate_sprite_colors(colors: list[RGBA]) -> None:
     for color in colors:
-        if not is_transparent(color) and not is_opaque_sms_color(color):
+        is_valid = is_transparent(color) or (is_opaque(color) and is_sms_color(color))
+        if not is_valid:
             raise Exception(f"{color} is not a valid color for a sprite tile")
 
 if __name__ == "__main__":
