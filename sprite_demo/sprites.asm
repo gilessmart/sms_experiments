@@ -12,18 +12,22 @@
 ;   c = SAT index
 ;   d = x coordinate
 ;   e = y coordinate
-; Clobbers: hl, c
+; Clobbers: hl
+; Updates: c is incremented by 1
 SPRITE_SetSprite:
     ld hl, ShadowSAT        ; base address
     add hl, bc              ; add SAT index
     ld (hl), e              ; store the y coordinate
     
     ld hl, ShadowSAT + $80  ; adr of 2nd part of shadow SAT
-    sla c                   ; double the SAT index
-    add hl, bc              ; add the doubled SAT index
+    add hl, bc              ; add SAT index
+    add hl, bc              ; add SAT index again
     ld (hl), d              ; store the x coordinate
+    
     inc hl
     ld (hl), a              ; store the pattern index
+    
+    inc c
 
     ret
 
@@ -36,8 +40,8 @@ SPRITE_SetSprite:
 ;   d = x position
 ;   e = y position
 ; Clobbers: ix, hl, a
-; Returns:
-;   c = is incremented by the number of sprites written
+; Updates:
+;   c is incremented by the number of sprites written
 SPRITE_SetSprites:
     ex af, af'
 

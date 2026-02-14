@@ -95,19 +95,65 @@
         call VDP_CopyData
 
         ; draw sprites
-        ld bc, 0        ; set SAT index = 0
+        ld bc, 0    ; set SAT index = 0
 
-        ; draw sonic at (64, 115)
-        ld ix, Sonic
-        ld a, 9
-        ld de, (64 << 8) | 115
+        ; draw grey robot
+        ld ix, Robot
+        ld a, 6
+        ld de, (163 << 8) | 16
         call SPRITE_SetSprites
 
-        ; draw tails at (168, 51)
-        ld ix, Tails
-        ld a, 8
-        ld de, (168 << 8) | 51
+        ; draw grey robot
+        ld ix, Robot
+        ld a, 6
+        ld de, (76 << 8) | 31
         call SPRITE_SetSprites
+
+        ; draw green alien
+        ld ix, Alien
+        ld a, 10
+        ld de, (191 << 8) | 63
+        call SPRITE_SetSprites
+
+        ; draw alien shot
+        ld ix, AlienShot
+        ld a, 3
+        ld de, (138 << 8) | 70
+        call SPRITE_SetSprites
+
+        ; draw player ship
+        ld ix, PlayerShip
+        ld a, 5
+        ld de, (37 << 8) | 81
+        call SPRITE_SetSprites
+
+         ; draw player shots
+        ld a, $17
+        ld de, (84 << 8) | 86
+        call SPRITE_SetSprite
+        ld de, (124 << 8) | 86
+        call SPRITE_SetSprite
+        ld de, (164 << 8) | 86
+        call SPRITE_SetSprite
+
+        ; draw butterfly
+        ld ix, Butterfly
+        ld a, 4
+        ld de, (156 << 8) | 105
+        call SPRITE_SetSprites
+
+        ; draw butterfly
+        ld ix, Butterfly
+        ld a, 4
+        ld de, (218 << 8) | 132
+        call SPRITE_SetSprites
+
+        ; draw red balls
+        ld a, $0f
+        ld de, (36 << 8) | 110
+        call SPRITE_SetSprite
+        ld de, (84 << 8) | 137
+        call SPRITE_SetSprite
 
         ; terminate shadow SAT
         ld hl, ShadowSAT
@@ -128,28 +174,48 @@
         ; loop
     -:  jr -
 
-    Sonic:
+    Robot:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $0a
+    .db 0, 8, $0b
+    .db 8, 0, $1a
+    .db 8, 8, $1b
+    .db 16, 0, $1c
+    .db 16, 8, $1d
+    
+    Alien:
     ; .db y, x, sprite_pattern_idx
     .db 0, 0, $00
     .db 0, 8, $01
+    .db 0, 16, $02
     .db 8, 0, $10
     .db 8, 8, $11
-    .db 16, 0, $20
-    .db 16, 8, $21
-    .db 24, 0, $30
-    .db 24, 8, $31
-    .db 24, 16, $32
+    .db 8, 16, $12
+    .db 16, 8, $03
+    .db 16, 16, $04
+    .db 24, 8, $13
+    .db 24, 16, $14
 
-    Tails:
+    AlienShot:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $0c
+    .db 0, 8, $0d
+    .db 0, 16, $0e
+
+    PlayerShip:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $05
+    .db 0, 8, $06
+    .db 0, 16, $07
+    .db 8, 0, $15
+    .db 8, 8, $16
+
+    Butterfly:
     ; .db y, x, sprite_pattern_idx
     .db 0, 0, $08
     .db 0, 8, $09
     .db 8, 0, $18
     .db 8, 8, $19
-    .db 8, 16, $1a
-    .db 16, 0, $28
-    .db 16, 8, $29
-    .db 16, 16, $2a
 
     .include "data/palette.asm"
     .include "data/tile_patterns.asm"
