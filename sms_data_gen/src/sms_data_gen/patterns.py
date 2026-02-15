@@ -95,19 +95,15 @@ def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:
 
 # Image output
 
-def write_bg_tiles_img(output_dir: Optional[str], patterns: list[Image.Image]):
-    tiles_per_row = 16
+def write_bg_tiles_img(output_dir: Optional[str], patterns: list[Image.Image], max_size: int):
+    cols = 16
+    rows = ceil(max_size / 16)
     tile_size = 8
-    cols = min(len(patterns), tiles_per_row)
-    rows = ceil(len(patterns) / tiles_per_row)
 
-    out_width = cols * tile_size
-    out_height = rows * tile_size
-
-    out_img = Image.new("RGBA", (out_width, out_height), (0, 0, 0, 0))
+    out_img = Image.new("RGBA", (cols * tile_size, rows * tile_size), (0, 0, 0, 0))
     for idx, tile in enumerate(patterns):
-        x = (idx % tiles_per_row) * tile_size
-        y = (idx // tiles_per_row) * tile_size
+        x = (idx % cols) * tile_size
+        y = (idx // cols) * tile_size
         out_img.paste(tile, (x, y))
 
     if output_dir is None:
