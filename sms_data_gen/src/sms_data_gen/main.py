@@ -99,5 +99,7 @@ def validate_sprite_colors(colors: list[RGBA]) -> None:
         if not is_valid:
             raise Exception(f"{color} is not a valid color for a sprite tile")
 
+# This is the code path executed when the app is invoked with `python <script path>`,
+# which is how the VS Code debugger invokes it.
 if __name__ == "__main__":
     main()
