@@ -31,7 +31,7 @@ class Palette:
 
     def get_bytes(self) -> bytes:
         byte_values = [_to_6_bit_color(color) for color in self._colors]
-        byte_values += [0] * (16 - len(self._colors))
+        byte_values += [0] * (self._capacity - len(self._colors))
         return bytes(byte_values)
     
     def index(self, color: RGBA) -> int:
