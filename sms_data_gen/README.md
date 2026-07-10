@@ -10,28 +10,18 @@ Python >= 3.14
 
 (Earlier versions may work but have not been not tested)
 
-## Setup
+## Installation
 
-First time setup:
+(From the root of a local clone of this repo)
 
+**Install with pip**
 ```
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-On subsequent setups, only `source .venv/bin/activate` is necessary.
-
-## Run
-
-```
-smsdatagen -b test_images/background.png -t test_images/background-tiles.png -s test_images/sprites.png -o output
+pip install --user .
 ```
 
-## Unit Test
-
+**Install with pipx**
 ```
-pytest
+pipx install .
 ```
 
 ## Usage
@@ -49,6 +39,14 @@ arguments:
 At least one of the **background file path**, **background tiles file path** and **sprites file path** must be supplied.
 
 The **background file path**, **background tiles file path** and **sprites file path** must all be unique.
+
+### Example
+
+```
+smsdatagen -b test_images/background.png \
+           -t test_images/background-tiles.png \
+           -s test_images/sprites.png -o output
+```
 
 ## Operation
 
@@ -115,3 +113,21 @@ The following files are written to the output directory:
 
 * **Allow colors that are close to valid SMS colors**  
   Or add a separate script that fixes images with invalid colors
+
+## Dev Setup
+
+First time setup:
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+On subsequent setups, only `source .venv/bin/activate` is necessary.
+
+### Unit Tests
+
+```
+pytest -v
+```
