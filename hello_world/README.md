@@ -15,21 +15,7 @@ make
 
 ## Regenerate tile / palette data
 
-Using the [SMS Data Gen](../sms_data_gen/) tool to regenerate the tile & palette data from a PNG image
-
-### Setup
-
-First time setup:
-
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ../sms_data_gen
-```
-
-On subsequent setups, only `source .venv/bin/activate` is necessary.
-
-### Run
+Use the [SMS Data Gen](../sms_data_gen/) tool to regenerate the tile & palette data from the background image:
 
 ```sh
 smsdatagen -b images/background.png -o data
