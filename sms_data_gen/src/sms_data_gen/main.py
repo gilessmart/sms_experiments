@@ -7,17 +7,14 @@ from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get
 from sms_data_gen.palettes import Palette, write_palettes
 from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
 
-max_bg_tile_patterns = 256
-max_sprite_patterns = 192
-
 def main():
     args = parse_args()
 
     bg_tile_palette = Palette(16)
-    bg_tile_patterns = PatternList(max_bg_tile_patterns)
+    bg_tile_patterns = PatternList(256)
     tilemap = Tilemap(32*28)
     sprite_palette = Palette(16)
-    sprite_patterns = PatternList(max_sprite_patterns)
+    sprite_patterns = PatternList(192)
     
     # ingest the background tiles file
     if args.bg_tiles_file_path:
