@@ -72,8 +72,7 @@ def main():
         data = bg_tile_patterns.get_bytes(bg_tile_palette.index)
         write_patterns_asm(args.output_dir_path, "tile_patterns.asm", "TilePatterns", data)
         # Output bg tile pattern image
-        patterns = bg_tile_patterns.get_patterns()
-        write_bg_tiles_img(args.output_dir_path, patterns, max_bg_tile_patterns)
+        write_bg_tiles_img(args.output_dir_path, bg_tile_patterns)
     
     if not tilemap.is_empty():
         data = tilemap.get_bytes()

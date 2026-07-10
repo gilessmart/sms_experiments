@@ -9,39 +9,36 @@ from sms_data_gen.file_io import write_file
 from sms_data_gen.image_utils import images_are_equal
 
 class PatternList:
-    _capacity: int
-    _patterns: list[Image.Image]
+    capacity: int
+    patterns: list[Image.Image]
 
     def __init__(self, capacity: int) -> None:
-        self._capacity = capacity
-        self._patterns = []
+        self.capacity = capacity
+        self.patterns = []
 
     def add_patterns(self, patterns: list[Image.Image]) -> None:
         for pattern in patterns:
             self.add_pattern(pattern)
 
     def add_pattern(self, pattern: Image.Image) -> int:
-        if len(self._patterns) >= self._capacity:
+        if len(self.patterns) >= self.capacity:
             raise Exception("Tried to add a pattern to an already full pattern list")
         
-        self._patterns.append(pattern)
-        return len(self._patterns) - 1
+        self.patterns.append(pattern)
+        return len(self.patterns) - 1
     
     def index(self, pattern: Image.Image) -> Optional[int]:
-        return next((i for i, candidate in enumerate(self._patterns) if images_are_equal(candidate, pattern)), None)
+        return next((i for i, candidate in enumerate(self.patterns) if images_are_equal(candidate, pattern)), None)
 
     def get_bytes(self, get_palette_index: Callable[[RGBA], int]) -> bytes:
         byte_values = []
-        for pattern in self._patterns:
+        for pattern in self.patterns:
             pattern_bytes = _get_pattern_bytes(pattern, get_palette_index)
             byte_values.extend(pattern_bytes)
         return bytes(byte_values)
 
     def is_empty(self) -> bool:
-        return len(self._patterns) == 0
-    
-    def get_patterns(self) -> list[Image.Image]:
-        return self._patterns
+        return len(self.patterns) == 0
 
 # Planar conversion
 
@@ -95,13 +92,13 @@ def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:
 
 # Image output
 
-def write_bg_tiles_img(output_dir: Optional[str], patterns: list[Image.Image], max_size: int):
+def write_bg_tiles_img(output_dir: Optional[str], patternList: PatternList):
     cols = 16
-    rows = ceil(max_size / 16)
+    rows = ceil(patternList.capacity / 16)
     tile_size = 8
 
     out_img = Image.new("RGBA", (cols * tile_size, rows * tile_size), (0, 0, 0, 0))
-    for idx, tile in enumerate(patterns):
+    for idx, tile in enumerate(patternList.patterns):
         x = (idx % cols) * tile_size
         y = (idx // cols) * tile_size
         out_img.paste(tile, (x, y))
