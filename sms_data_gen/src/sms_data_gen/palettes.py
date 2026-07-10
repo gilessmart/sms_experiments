@@ -2,19 +2,19 @@ from sms_data_gen.file_io import write_file
 from sms_data_gen.image_utils import RGBA
 
 class Palette:
-    _capacity: int
-    _colors: list[RGBA]
+    capacity: int
+    entries: list[RGBA]
 
     def __init__(self, capacity: int) -> None:
-        self._capacity = capacity
-        self._colors = []
+        self.capacity = capacity
+        self.entries = []
 
     def add_new_colors(self, colors: list[RGBA]) -> None:
         for color in colors:
             self._add_color_if_new(color)
 
     def _add_color_if_new(self, color: RGBA) -> None:
-        if color in self._colors:
+        if color in self.entries:
             return
         
         self._add_color(color)
@@ -24,18 +24,18 @@ class Palette:
             self._add_color(color)
 
     def _add_color(self, color):
-        if len(self._colors) >= self._capacity:
+        if len(self.entries) >= self.capacity:
             raise Exception("Tried to add color to already full palette")
         
-        self._colors.append(color)
+        self.entries.append(color)
 
     def get_bytes(self) -> bytes:
-        byte_values = [_to_6_bit_color(color) for color in self._colors]
-        byte_values += [0] * (self._capacity - len(self._colors))
+        byte_values = [_to_6_bit_color(color) for color in self.entries]
+        byte_values += [0] * (self.capacity - len(self.entries))
         return bytes(byte_values)
     
     def index(self, color: RGBA) -> int:
-        return self._colors.index(color)
+        return self.entries.index(color)
     
 # Color conversion
 def _to_6_bit_color(color: RGBA) -> int:

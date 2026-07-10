@@ -18,24 +18,24 @@ class TilemapEntry:
         return bytes([high_byte, low_byte])
 
 class Tilemap:
-    _capacity: int
-    _entries: list[TilemapEntry]
+    capacity: int
+    entries: list[TilemapEntry]
 
     def __init__(self, capacity: int) -> None:
-        self._capacity = capacity
-        self._entries = []
+        self.capacity = capacity
+        self.entries = []
 
     def add_entry(self, entry: TilemapEntry) -> None:
-        if len(self._entries) >= self._capacity:
+        if len(self.entries) >= self.capacity:
             raise Exception("Tried to add tilemap entry to an already full tilemap")
-        self._entries.append(entry)
+        self.entries.append(entry)
 
     def is_empty(self) -> bool:
-        return len(self._entries) == 0
+        return len(self.entries) == 0
     
     def get_bytes(self) -> bytes:
         result = []
-        for entry in self._entries:
+        for entry in self.entries:
             result.extend(entry.get_bytes())
         return bytes(result)
 

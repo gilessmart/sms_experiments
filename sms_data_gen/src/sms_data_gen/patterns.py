@@ -10,35 +10,35 @@ from sms_data_gen.image_utils import images_are_equal
 
 class PatternList:
     capacity: int
-    patterns: list[Image.Image]
+    entries: list[Image.Image]
 
     def __init__(self, capacity: int) -> None:
         self.capacity = capacity
-        self.patterns = []
+        self.entries = []
 
     def add_patterns(self, patterns: list[Image.Image]) -> None:
         for pattern in patterns:
             self.add_pattern(pattern)
 
     def add_pattern(self, pattern: Image.Image) -> int:
-        if len(self.patterns) >= self.capacity:
+        if len(self.entries) >= self.capacity:
             raise Exception("Tried to add a pattern to an already full pattern list")
         
-        self.patterns.append(pattern)
-        return len(self.patterns) - 1
+        self.entries.append(pattern)
+        return len(self.entries) - 1
     
     def index(self, pattern: Image.Image) -> Optional[int]:
-        return next((i for i, candidate in enumerate(self.patterns) if images_are_equal(candidate, pattern)), None)
+        return next((i for i, candidate in enumerate(self.entries) if images_are_equal(candidate, pattern)), None)
 
     def get_bytes(self, get_palette_index: Callable[[RGBA], int]) -> bytes:
         byte_values = []
-        for pattern in self.patterns:
+        for pattern in self.entries:
             pattern_bytes = _get_pattern_bytes(pattern, get_palette_index)
             byte_values.extend(pattern_bytes)
         return bytes(byte_values)
 
     def is_empty(self) -> bool:
-        return len(self.patterns) == 0
+        return len(self.entries) == 0
 
 # Planar conversion
 
@@ -98,7 +98,7 @@ def write_bg_tiles_img(output_dir: Optional[str], patternList: PatternList):
     tile_size = 8
 
     out_img = Image.new("RGBA", (cols * tile_size, rows * tile_size), (0, 0, 0, 0))
-    for idx, tile in enumerate(patternList.patterns):
+    for idx, tile in enumerate(patternList.entries):
         x = (idx % cols) * tile_size
         y = (idx // cols) * tile_size
         out_img.paste(tile, (x, y))
