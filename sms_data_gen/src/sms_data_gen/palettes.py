@@ -2,11 +2,10 @@ from sms_data_gen.file_io import write_file
 from sms_data_gen.image_utils import RGBA
 
 class Palette:
-    capacity: int
+    CAPACITY: int = 16
     entries: list[RGBA]
 
-    def __init__(self, capacity: int) -> None:
-        self.capacity = capacity
+    def __init__(self,) -> None:
         self.entries = []
 
     def add_new_colors(self, colors: list[RGBA]) -> None:
@@ -24,15 +23,13 @@ class Palette:
             self._add_color(color)
 
     def _add_color(self, color):
-        if len(self.entries) >= self.capacity:
+        if len(self.entries) >= self.CAPACITY:
             raise Exception("Tried to add color to already full palette")
         
         self.entries.append(color)
 
     def get_bytes(self) -> bytes:
-        byte_values = [_to_6_bit_color(color) for color in self.entries]
-        byte_values += [0] * (self.capacity - len(self.entries))
-        return bytes(byte_values)
+        return bytes([_to_6_bit_color(color) for color in self.entries])
     
     def index(self, color: RGBA) -> int:
         return self.entries.index(color)
@@ -48,8 +45,8 @@ def _to_6_bit_color(color: RGBA) -> int:
 # ASM output
 
 def write_palettes(output_dir, tile_palette: Palette, sprite_palette: Palette) -> None:
-    tile_palette_bytes = tile_palette.get_bytes()
-    sprite_palette_bytes = sprite_palette.get_bytes()
+    tile_palette_bytes = tile_palette.get_bytes() + bytes(tile_palette.CAPACITY - len(tile_palette.entries))
+    sprite_palette_bytes = sprite_palette.get_bytes() + bytes(sprite_palette.CAPACITY - len(sprite_palette.entries))
     content = _create_asm_content(tile_palette_bytes, sprite_palette_bytes)
     write_file(output_dir, "palette.asm", content)
 

@@ -10,10 +10,10 @@ from sms_data_gen.tilemap import Tilemap, TilemapEntry, write_tilemap_asm
 def main():
     args = parse_args()
 
-    bg_tile_palette = Palette(16)
+    bg_tile_palette = Palette()
     bg_tile_patterns = PatternList(256)
     tilemap = Tilemap(32*28)
-    sprite_palette = Palette(16)
+    sprite_palette = Palette()
     sprite_patterns = PatternList(192)
     
     # ingest the background tiles file
