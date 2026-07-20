@@ -20,7 +20,7 @@ VDP_SetAddress:
 ; Params: hl = data address, bc = data length
 ; Clobbers: a, hl, bc
 VDP_CopyData:
--:ld a, (hl)
+-:	ld a, (hl)
 	out (VDP_DATA_PORT), a
 	inc hl
 	dec bc

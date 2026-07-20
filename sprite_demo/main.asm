@@ -173,7 +173,7 @@
         ld hl, $8100 + %11100000 ; 16K VRAM, enable display, frame interrupts
         call VDP_SetAddress
 
-        ; loop
+    ; loop
     -:  jr -
 
     Robot:
