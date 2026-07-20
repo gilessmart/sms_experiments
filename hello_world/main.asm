@@ -17,7 +17,9 @@
 .section "startup" force
     di              ; disable interrupts
     im 1            ; use interrupt mode 1
-    ld sp, $dff0    ; leave 16KB free in case the BIOS has left anything there
+    ld sp, $dff0    ; RAM is at $C000 - $DFFF, and is mirrored at $E000 - $FFFF,
+                    ; and $FFFC - $FFFF is used for bank switching, 
+                    ; so space is left at top of RAM to prevent bank switching corrupting the stack
     jp main
 .ends
 
