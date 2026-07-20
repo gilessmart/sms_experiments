@@ -27,10 +27,10 @@
 
 .org $0038
 .section "interrupt_handler" force
-    retn
+    reti
 .ends
 
-.org $0038
+.org $0066
 .section "pause_handler" force
     retn
 .ends
