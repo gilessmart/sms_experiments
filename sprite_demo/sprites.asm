@@ -1,10 +1,3 @@
-.MACRO SPRITE_SETSPRITE ARGS SAT_IDX, PATTERN_IDX, X_POS, Y_POS
-    ld   a, PATTERN_IDX
-    ld   bc, SAT_IDX
-    ld   de, (X_POS << 8) | Y_POS
-    call SPRITE_SetSprite
-.ENDM
-
 ; Writes a sprite to the shadow SAT
 ; Params: 
 ;   a = sprite pattern index
