@@ -20,7 +20,7 @@
 .org $0000
 .section "startup" force
     di              ; disable interrupts
-    im 1            ; use interrupt mode 1
+    im 1            ; use interrupt mode 1 - is this already done by the SMS boot ROM?
     ld sp, $dff0    ; RAM is at $C000 - $DFFF, and is mirrored at $E000 - $FFFF,
                     ; and $FFFC - $FFFF is used for bank switching, 
                     ; so space is left at top of RAM to prevent bank switching corrupting the stack
@@ -31,6 +31,17 @@
 
 .org $0038
 .section "interrupt_handler" force
+    push af
+        in a, (VDP_CTRL_PORT)   ; read & clear VDP flags, clear interrupt request line
+        bit 7, a                ; set z if vblank flag is 0
+        
+        push bc
+        push hl
+        call nz, VBlankHandler  ; handle the vblank if z is not set
+        pop hl
+        pop bc
+    pop af
+    ei      ; turn interrupts back on  - they're turned off automatically when an interrupt is accepted
     reti
 .ends
 
@@ -139,6 +150,8 @@
         ld hl, $8100 + %11100000 ; 16K VRAM, enable display, frame interrupts
         call VDP_SetAddress
 
+        ei  ; enable interrupts
+
     ; loop
     -:  jr -
 
@@ -210,6 +223,50 @@
     .db 16, 0, $25
     .db 16, 8, $26
     .db 16, 16, $27
+
+    ; Handle the VBlank
+    ; Clobbers: a, bc, hl
+    VBlankHandler:
+        ; draw sprites
+        ld bc, 0    ; set SAT index = 0
+
+        ; sonic
+        ld ix, Sonic
+        ld a, 9
+        ld de, (64 << 8) | 115
+        call SPRITE_SetSprites
+
+        ; bored sonic, frame 0
+        ld ix, BoredSonic1
+        ld a, 9
+        ld de, (64 << 8) | 43
+        call SPRITE_SetSprites
+
+        ; tails
+        ld ix, Tails
+        ld a, 8
+        ld de, (168 << 8) | 51
+        call SPRITE_SetSprites
+
+        ; bored tails, frame 0
+        ld ix, BoredTails1
+        ld a, 8
+        ld de, (168 << 8) | 123
+        call SPRITE_SetSprites
+
+        ; terminate shadow SAT
+        ld hl, ShadowSAT
+        add hl, bc      ; hl = adr of next y position
+        ld (hl), $d0    ; D0 terminates the table
+
+        ; write SAT
+        ld hl, VDP_CMD_VRAM_WRITE | $3f00
+        call VDP_SetAddress
+        ld hl, ShadowSAT
+        ld bc, 256
+        call VDP_CopyData
+
+        ret
 
     .include "data/palette.asm"
     .include "data/tile_patterns.asm"
