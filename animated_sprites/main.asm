@@ -139,12 +139,7 @@
         add hl, bc      ; hl = adr of next y position
         ld (hl), $d0    ; D0 terminates the table
 
-        ; write SAT
-        ld hl, VDP_CMD_VRAM_WRITE | $3f00
-        call VDP_SetAddress
-        ld hl, ShadowSAT
-        ld bc, 256
-        call VDP_CopyData
+        call SPRITES_Flush
 
         ; turn on display
         ld hl, $8100 + %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -259,12 +254,7 @@
         add hl, bc      ; hl = adr of next y position
         ld (hl), $d0    ; D0 terminates the table
 
-        ; write SAT
-        ld hl, VDP_CMD_VRAM_WRITE | $3f00
-        call VDP_SetAddress
-        ld hl, ShadowSAT
-        ld bc, 256
-        call VDP_CopyData
+        call SPRITES_Flush
 
         ret
 

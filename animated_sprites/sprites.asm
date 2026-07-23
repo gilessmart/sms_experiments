@@ -65,3 +65,14 @@ SPRITE_SetSprites:
     jr nz, SPRITE_SetSprites    ; if a != 0 then repeat
 
     ret
+
+; Flushes the shadow SAT out to the VDP
+; Clobbers: a, bc, hl
+SPRITES_Flush:
+    ld hl, VDP_CMD_VRAM_WRITE | $3f00
+    call VDP_SetAddress
+    ld hl, ShadowSAT
+    ld b, 0
+    ld c, VDP_DATA_PORT
+    OTIR
+    ret
