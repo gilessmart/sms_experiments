@@ -32,15 +32,13 @@
 .section "interrupt_handler" force
     push af
         in a, (VDP_CTRL_PORT)   ; read & clear VDP flags, clear interrupt request line
-        bit 7, a                ; set z if vblank flag is 0
-        
         push bc
-        push hl
-        call nz, UpdateSprites  ; handle the vblank if z is not set
-        pop hl
+            push hl
+                call UpdateSprites
+            pop hl
         pop bc
     pop af
-    ei      ; turn interrupts back on  - they're turned off automatically when an interrupt is accepted
+    ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
     reti
 .ends
 
@@ -52,7 +50,7 @@
 .section "main"
     main:
         ; initialise VDP registers
-        ld hl, $8000 + %00000100    ; enable mode 4
+        ld hl, $8000 + %00000100    ; mode 4
         call VDP_SetAddress
         ld hl, $8100 + %10100000    ; 16K VRAM, frame interrupts
         call VDP_SetAddress
@@ -139,7 +137,7 @@
         ei  ; enable interrupts
 
         ; loop
-        -:  jr -
+    -:  jr -
 .ends
 
 .section "update_sprites"
