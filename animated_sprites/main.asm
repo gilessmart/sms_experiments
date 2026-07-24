@@ -141,6 +141,7 @@
     ; loop
     -:  jr -
 
+.section "spritedefs"
     Sonic:
     ; .db y, x, sprite_pattern_idx
     .db 0, 0, $00
@@ -209,7 +210,9 @@
     .db 16, 0, $25
     .db 16, 8, $26
     .db 16, 16, $27
+.ends
 
+.section "update_sprites"
     ; Handle the VBlank
     ; Clobbers: a, bc, hl
     VBlankHandler:
@@ -243,7 +246,9 @@
         call SPRITES_Flush
 
         ret
+.ends
 
+.section "vdp_data"
     .include "data/palette.asm"
     .include "data/tile_patterns.asm"
     .include "data/tilemap.asm"
