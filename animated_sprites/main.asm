@@ -222,7 +222,7 @@
         ld de, (64 << 8) | 115
         call SPRITES_SetSprites
 
-        ; bored sonic, frame 0
+        ; bored sonic, frame 1
         ld ix, BoredSonic1
         ld a, 9
         ld de, (64 << 8) | 43
@@ -234,7 +234,7 @@
         ld de, (168 << 8) | 51
         call SPRITES_SetSprites
 
-        ; bored tails, frame 0
+        ; bored tails, frame 1
         ld ix, BoredTails1
         ld a, 8
         ld de, (168 << 8) | 123
