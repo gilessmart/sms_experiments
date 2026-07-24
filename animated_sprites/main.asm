@@ -1,12 +1,12 @@
 .memorymap
     defaultslot 0
-    slot 0 $0000 $8000  ; 32K ROM
+    slot 0 $0000 $4000  ; 16K ROM
     slot 1 $c000 $2000  ; 8K RAM
 .endme
 
 .rombankmap
     bankstotal 1
-    banksize $8000
+    banksize $4000
     banks 1
 .endro
 
