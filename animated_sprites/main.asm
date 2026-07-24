@@ -13,6 +13,8 @@
 .bank 0
 .slot 0
 
+.sdsctag 0.1, "Animated Sprites Demo", "SMS programming experiment", "Giles Smart"
+
 .include "vdp.asm"
 .include "sprites.asm"
 
@@ -26,8 +28,6 @@
     jp main
 .ends
 
-.sdsctag 0.1, "Animated Sprites Demo", "SMS programming experiment", "Giles Smart"
-
 .org $0038
 .section "interrupt_handler" force
     push af
@@ -36,7 +36,7 @@
         
         push bc
         push hl
-        call nz, VBlankHandler  ; handle the vblank if z is not set
+        call nz, UpdateSprites  ; handle the vblank if z is not set
         pop hl
         pop bc
     pop af
@@ -138,8 +138,52 @@
 
         ei  ; enable interrupts
 
-    ; loop
-    -:  jr -
+        ; loop
+        -:  jr -
+.ends
+
+.section "update_sprites"
+    ; Handle the VBlank
+    ; Clobbers: a, bc, hl
+    UpdateSprites:
+        ; draw sprites
+        ld bc, 0    ; set SAT index = 0
+
+        ; sonic
+        ld ix, Sonic
+        ld a, 9
+        ld de, (64 << 8) | 115
+        call SPRITES_SetSprites
+
+        ; bored sonic, frame 1
+        ld ix, BoredSonic1
+        ld a, 9
+        ld de, (64 << 8) | 43
+        call SPRITES_SetSprites
+
+        ; tails
+        ld ix, Tails
+        ld a, 8
+        ld de, (168 << 8) | 51
+        call SPRITES_SetSprites
+
+        ; bored tails, frame 1
+        ld ix, BoredTails1
+        ld a, 8
+        ld de, (168 << 8) | 123
+        call SPRITES_SetSprites
+
+        call SPRITES_Flush
+
+        ret
+.ends
+
+.section "vdp_data"
+    .include "data/palette.asm"
+    .include "data/tile_patterns.asm"
+    .include "data/tilemap.asm"
+    .include "data/sprite_patterns.asm"
+.ends
 
 .section "spritedefs"
     Sonic:
@@ -210,47 +254,4 @@
     .db 16, 0, $25
     .db 16, 8, $26
     .db 16, 16, $27
-.ends
-
-.section "update_sprites"
-    ; Handle the VBlank
-    ; Clobbers: a, bc, hl
-    VBlankHandler:
-        ; draw sprites
-        ld bc, 0    ; set SAT index = 0
-
-        ; sonic
-        ld ix, Sonic
-        ld a, 9
-        ld de, (64 << 8) | 115
-        call SPRITES_SetSprites
-
-        ; bored sonic, frame 1
-        ld ix, BoredSonic1
-        ld a, 9
-        ld de, (64 << 8) | 43
-        call SPRITES_SetSprites
-
-        ; tails
-        ld ix, Tails
-        ld a, 8
-        ld de, (168 << 8) | 51
-        call SPRITES_SetSprites
-
-        ; bored tails, frame 1
-        ld ix, BoredTails1
-        ld a, 8
-        ld de, (168 << 8) | 123
-        call SPRITES_SetSprites
-
-        call SPRITES_Flush
-
-        ret
-.ends
-
-.section "vdp_data"
-    .include "data/palette.asm"
-    .include "data/tile_patterns.asm"
-    .include "data/tilemap.asm"
-    .include "data/sprite_patterns.asm"
 .ends
