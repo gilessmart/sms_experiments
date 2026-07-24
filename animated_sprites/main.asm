@@ -10,12 +10,11 @@
     banks 1
 .endro
 
-.ramsection "shadow_sat" slot 1
-    ShadowSAT: dsb 256
-.ends
-
 .bank 0
 .slot 0
+
+.include "vdp.asm"
+.include "sprites.asm"
 
 .org $0000
 .section "startup" force
@@ -51,9 +50,6 @@
 .ends
 
 .section "main"
-    .include "vdp.asm"
-    .include "sprites.asm"
-
     main:
         ; initialise VDP registers
         ld hl, $8000 + %00000100    ; enable mode 4
