@@ -1,7 +1,9 @@
 .section "vdplibs"
 
     ; VDP commands
+    .define VDP_CMD_VRAM_READ (%00 << 14)
     .define VDP_CMD_VRAM_WRITE (%01 << 14)
+    .define VDP_CMD_REGISTER_WRITE (%10 << 14)
     .define VDP_CMD_CRAM_WRITE (%11 << 14)
 
     ; VDP ports
