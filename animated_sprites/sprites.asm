@@ -7,7 +7,7 @@
 ;   e = y coordinate
 ; Clobbers: hl
 ; Updates: c is incremented by 1
-SPRITE_SetSprite:
+SPRITES_SetSprite:
     ld hl, ShadowSAT        ; base address
     add hl, bc              ; add SAT index
     ld (hl), e              ; store the y coordinate
@@ -35,7 +35,7 @@ SPRITE_SetSprite:
 ; Clobbers: ix, hl, a
 ; Updates:
 ;   c is incremented by the number of sprites written
-SPRITE_SetSprites:
+SPRITES_SetSprites:
     ex af, af'
 
     ld a, (ix+0)                ; a = relative y coordinate
@@ -62,17 +62,27 @@ SPRITE_SetSprites:
     inc ix                      ; ix now points at next y value
     inc c                       ; increment SAT index counter
     dec a                       ; decrement remaining sprites
-    jr nz, SPRITE_SetSprites    ; if a != 0 then repeat
+    jr nz, SPRITES_SetSprites    ; if a != 0 then repeat
 
     ret
 
-; Flushes the shadow SAT out to the VDP
-; Clobbers: a, bc, hl
+; Terminates the shadow SAT and copies it to the VDP
+; Params:
+;   b = must be 0
+;   c = SAT index counter
+; Clobbers: a, c, hl
 SPRITES_Flush:
+    ; terminate shadow SAT
+    ld hl, ShadowSAT
+    add hl, bc      ; hl = adr of next y position
+    ld (hl), $d0    ; D0 terminates the table
+
+    ; copy to VDP
     ld hl, VDP_CMD_VRAM_WRITE | $3f00
     call VDP_SetAddress
     ld hl, ShadowSAT
     ld b, 0
     ld c, VDP_DATA_PORT
     OTIR
+    
     ret

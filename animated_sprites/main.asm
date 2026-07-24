@@ -114,30 +114,25 @@
         ld ix, Sonic
         ld a, 9
         ld de, (64 << 8) | 115
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; bored sonic, frame 0
         ld ix, BoredSonic0
         ld a, 9
         ld de, (64 << 8) | 43
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; tails
         ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; bored tails, frame 0
         ld ix, BoredTails0
         ld a, 8
         ld de, (168 << 8) | 123
-        call SPRITE_SetSprites
-        
-        ; terminate shadow SAT
-        ld hl, ShadowSAT
-        add hl, bc      ; hl = adr of next y position
-        ld (hl), $d0    ; D0 terminates the table
+        call SPRITES_SetSprites
 
         call SPRITES_Flush
 
@@ -229,30 +224,25 @@
         ld ix, Sonic
         ld a, 9
         ld de, (64 << 8) | 115
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; bored sonic, frame 0
         ld ix, BoredSonic1
         ld a, 9
         ld de, (64 << 8) | 43
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; tails
         ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
-        call SPRITE_SetSprites
+        call SPRITES_SetSprites
 
         ; bored tails, frame 0
         ld ix, BoredTails1
         ld a, 8
         ld de, (168 << 8) | 123
-        call SPRITE_SetSprites
-
-        ; terminate shadow SAT
-        ld hl, ShadowSAT
-        add hl, bc      ; hl = adr of next y position
-        ld (hl), $d0    ; D0 terminates the table
+        call SPRITES_SetSprites
 
         call SPRITES_Flush
 
