@@ -104,12 +104,6 @@
         ; draw sprites
         ld bc, 0    ; set SAT index = 0
 
-        ; sonic
-        ld ix, Sonic
-        ld a, 9
-        ld de, (64 << 8) | 115
-        call SPRITES_SetSprites
-
         ; bored sonic, frame 0
         ld ix, BoredSonic0
         ld a, 9
@@ -120,6 +114,12 @@
         ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
+        call SPRITES_SetSprites
+
+        ; sonic
+        ld ix, Sonic
+        ld a, 9
+        ld de, (64 << 8) | 115
         call SPRITES_SetSprites
 
         ; bored tails, frame 0
@@ -147,12 +147,6 @@
         ; draw sprites
         ld bc, 0    ; set SAT index = 0
 
-        ; sonic
-        ld ix, Sonic
-        ld a, 9
-        ld de, (64 << 8) | 115
-        call SPRITES_SetSprites
-
         ; bored sonic, frame 1
         ld ix, BoredSonic1
         ld a, 9
@@ -163,6 +157,12 @@
         ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
+        call SPRITES_SetSprites
+
+        ; sonic
+        ld ix, Sonic
+        ld a, 9
+        ld de, (64 << 8) | 115
         call SPRITES_SetSprites
 
         ; bored tails, frame 1
