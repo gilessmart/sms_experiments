@@ -72,25 +72,26 @@
 
         ret
 
-    ; Terminates the shadow SAT and copies it to the VDP
+    ; Terminates the shadow SAT
     ; Params:
     ;   b = must be 0
     ;   c = SAT index counter
     ; Clobbers: a, c, hl
-    SPRITES_Flush:
-        ; terminate shadow SAT
+    SPRITES_TerminateSAT:
         ld hl, ShadowSAT
         add hl, bc      ; hl = adr of next y position
         ld (hl), $d0    ; D0 terminates the table
+        ret
 
-        ; copy to VDP
+    ; Copies the shadow SAT to the VDP
+    ; Clobbers: bc, hl
+    SPRITES_FlushSAT:
         ld hl, VDP_CMD_VRAM_WRITE | $3f00
         call VDP_SetAddress
         ld hl, ShadowSAT
         ld b, 0
         ld c, VDP_DATA_PORT
         OTIR
-
         ret
     
 .ends

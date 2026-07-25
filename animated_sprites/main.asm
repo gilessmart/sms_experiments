@@ -25,7 +25,7 @@
     ld sp, $dff0    ; RAM is at $C000 - $DFFF, and is mirrored at $E000 - $FFFF,
                     ; and $FFFC - $FFFF is used for bank switching, 
                     ; so space is left at top of RAM to prevent bank switching corrupting the stack
-    jp main
+    jp Init
 .ends
 
 .org $0038
@@ -34,7 +34,7 @@
         in a, (VDP_CTRL_PORT)   ; read & clear VDP flags, clear interrupt request line
         push bc
             push hl
-                call UpdateSprites
+                call SPRITES_FlushSAT
             pop hl
         pop bc
     pop af
@@ -48,7 +48,7 @@
 .ends
 
 .section "main"
-    main:
+    Init:
         ; initialise VDP registers
         ld hl, VDP_CMD_REGISTER_WRITE | (0 << 8) | %00000100 ; mode 4
         call VDP_SetAddress
@@ -128,7 +128,8 @@
         ld de, (168 << 8) | 123
         call SPRITES_SetSprites
 
-        call SPRITES_Flush
+        call SPRITES_TerminateSAT
+        call SPRITES_FlushSAT
 
         ; turn on display
         ld hl, VDP_CMD_REGISTER_WRITE | (1 << 8) | %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -136,14 +137,9 @@
 
         ei  ; enable interrupts
 
-        ; loop
-    -:  jr -
-.ends
+    MainLoop:
+        halt
 
-.section "update_sprites"
-    ; Handle the VBlank
-    ; Clobbers: a, bc, hl
-    UpdateSprites:
         ; bored sonic, frame 1
         ld bc, 0
         ld ix, BoredSonic1
@@ -158,9 +154,7 @@
         ld de, (168 << 8) | 123
         call SPRITES_SetSprites
 
-        call SPRITES_Flush
-
-        ret
+        jr MainLoop
 .ends
 
 .section "vdp_data"
