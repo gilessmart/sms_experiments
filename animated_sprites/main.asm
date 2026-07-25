@@ -18,6 +18,10 @@
 .include "vdp.asm"
 .include "sprites.asm"
 
+.ramsection "main_state" slot 1
+    FrameCounter: db
+.ends
+
 .org $0000
 .section "startup" force
     di              ; disable interrupts
@@ -101,27 +105,24 @@
         ld bc, SpritePatternsEnd - SpritePatterns
         call VDP_CopyData
 
-        ; draw sprites
-        ld bc, 0    ; set SAT index = 0
+        ; initilise SAT index
+        ld bc, 0
 
         ; bored sonic, frame 0
         ld ix, BoredSonic0
         ld a, 9
         ld de, (64 << 8) | 43
         call SPRITES_SetSprites
-
         ; tails
         ld ix, Tails
         ld a, 8
         ld de, (168 << 8) | 51
         call SPRITES_SetSprites
-
         ; sonic
         ld ix, Sonic
         ld a, 9
         ld de, (64 << 8) | 115
         call SPRITES_SetSprites
-
         ; bored tails, frame 0
         ld ix, BoredTails0
         ld a, 8
@@ -135,26 +136,53 @@
         ld hl, VDP_CMD_REGISTER_WRITE | (1 << 8) | %11100000 ; 16K VRAM, enable display, frame interrupts
         call VDP_SetAddress
 
+        ; initialise frame counter
+        ld a, 20
+        ld (FrameCounter), a
+
         ei  ; enable interrupts
 
     MainLoop:
         halt
 
-        ; bored sonic, frame 1
+        ld a, (FrameCounter)    ; fetch frame counter
+        inc a                   ; increment
+        ld (FrameCounter), a    ; store frame counter
+        bit 5, a                ; check bit 5 (changes every 16 frames)
+
+        jr z, +
+
+        ; sonic
+        ld ix, BoredSonic0
         ld bc, 0
-        ld ix, BoredSonic1
         ld a, 9
         ld de, (64 << 8) | 43
         call SPRITES_SetSprites
 
-        ; bored tails, frame 1
+        ; tails
+        ld ix, BoredTails0
         ld bc, 26
-        ld ix, BoredTails1
         ld a, 8
         ld de, (168 << 8) | 123
         call SPRITES_SetSprites
+    
+        jr ++
+        
+    +:  ; sonic
+        ld ix, BoredSonic1
+        ld bc, 0
+        ld a, 9
+        ld de, (64 << 8) | 43
+        call SPRITES_SetSprites
 
-        jr MainLoop
+        ; tails
+        ld ix, BoredTails1
+        ld bc, 26
+        ld a, 8
+        ld de, (168 << 8) | 123
+        call SPRITES_SetSprites    
+
+    ++: jr MainLoop
 .ends
 
 .section "vdp_data"
