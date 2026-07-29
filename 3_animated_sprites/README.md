@@ -1,6 +1,6 @@
-# Sprite Demo
+# Animated Sprite
 
-Displays animated sprites.
+Displays sprites and animates them (crudely).
 
 ## Dependencies
 

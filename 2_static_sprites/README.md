@@ -1,6 +1,6 @@
-# Sprite Demo
+# Static Sprites
 
-Displays sprites.
+Displays static sprites.
 
 ## Dependencies
 
