@@ -119,6 +119,65 @@
         ; - read controller inputs 
         ; - write sprites
 
+        ; test adding sprites
+        ld bc, 0
+
+        ; controller 1, d-pad up
+        ld a, $09
+        ld de, (66 << 8) | 53
+        call SPRITES_SetSprite
+        ; controller 1, d-pad down
+        ld a, $09
+        ld de, (66 << 8) | 82
+        call SPRITES_SetSprite
+        ; controller 1, d-pad left
+        ld a, $0a
+        ld de, (51 << 8) | 68
+        call SPRITES_SetSprite
+        ; controller 1, d-pad right
+        ld a, $0a
+        ld de, (80 << 8) | 68
+        call SPRITES_SetSprite
+        ; controller 1, button 1
+        ld ix, Button
+        ld a, 9
+        ld de, (160 << 8) | 65
+        call SPRITES_SetSprites
+        ; controller 1, button 2
+        ld ix, Button
+        ld a, 9
+        ld de, (189 << 8) | 65
+        call SPRITES_SetSprites
+
+        ; controller 2, d-pad up
+        ld a, $09
+        ld de, (66 << 8) | 125
+        call SPRITES_SetSprite
+        ; controller 2, d-pad down
+        ld a, $09
+        ld de, (66 << 8) | 154
+        call SPRITES_SetSprite
+        ; controller 2, d-pad left
+        ld a, $0a
+        ld de, (51 << 8) | 140
+        call SPRITES_SetSprite
+        ; controller 2, d-pad right
+        ld a, $0a
+        ld de, (80 << 8) | 140
+        call SPRITES_SetSprite
+        ; controller 2, button 1
+        ld ix, Button
+        ld a, 9
+        ld de, (160 << 8) | 137
+        call SPRITES_SetSprites
+        ; controller 2, button 2
+        ld ix, Button
+        ld a, 9
+        ld de, (189 << 8) | 137
+        call SPRITES_SetSprites
+
+        call SPRITES_TerminateSAT
+
     ++: jr MainLoop
 .ends
 
@@ -129,6 +188,16 @@
     .include "data/sprite_patterns.asm"
 .ends
 
-.section "spritedefs"
-    ; TODO
+.section "sprite_groups"
+    Button:
+    ; .db y, x, sprite_pattern_idx
+    .db 0, 0, $00
+    .db 0, 8, $01
+    .db 0, 16, $02
+    .db 8, 0, $03
+    .db 8, 8, $04
+    .db 8, 16, $05
+    .db 16, 0, $06
+    .db 16, 8, $07
+    .db 16, 16, $08
 .ends
