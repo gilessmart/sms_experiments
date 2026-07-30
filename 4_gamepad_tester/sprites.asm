@@ -89,9 +89,17 @@
         call VDP_SetAddress
         
         ld hl, ShadowSAT
-        ld b, 0
+        ld b, 64
         ld c, VDP_DATA_PORT
         otir
+
+        ld hl, VDP_CMD_VRAM_WRITE | $3f80
+        call VDP_SetAddress
         
+        ld hl, ShadowSAT + 128
+        ld b, 128
+        ld c, VDP_DATA_PORT
+        otir
+
         ret
 .ends
