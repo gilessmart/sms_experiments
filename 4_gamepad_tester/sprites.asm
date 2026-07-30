@@ -37,7 +37,7 @@
     ;   c = SAT index counter
     ;   d = x position
     ;   e = y position
-    ; Clobbers: ix, hl, a
+    ; Clobbers: ix, hl, a, a'
     ; Updates:
     ;   c is incremented by the number of sprites written
     SPRITES_SetSprites:
