@@ -67,7 +67,7 @@
         inc ix                      ; ix now points at next y value
         inc c                       ; increment SAT index counter
         dec a                       ; decrement remaining sprites
-        jr nz, SPRITES_SetSprites    ; if a != 0 then repeat
+        jr nz, SPRITES_SetSprites   ; if a != 0 then repeat
 
         ret
 
@@ -87,9 +87,11 @@
     SPRITES_FlushSAT:
         ld hl, VDP_CMD_VRAM_WRITE | $3f00
         call VDP_SetAddress
+        
         ld hl, ShadowSAT
         ld b, 0
         ld c, VDP_DATA_PORT
-        OTIR
+        otir
+        
         ret
 .ends
