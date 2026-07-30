@@ -115,70 +115,139 @@
     MainLoop:
         halt
 
-        ; TODO 
-        ; - read controller inputs 
-        ; - write sprites
-
-        ; test adding sprites
         ld bc, 0
 
+        in a, $dc
+
         ; controller 1, d-pad up
+        bit 0, a
+        jr nz, +
+        ex af, af'
         ld a, $09
         ld de, (66 << 8) | 53
         call SPRITES_SetSprite
+        ex af, af'
+        +:
+
         ; controller 1, d-pad down
+        bit 1, a
+        jr nz, +
+        ex af, af'
         ld a, $09
         ld de, (66 << 8) | 82
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+
         ; controller 1, d-pad left
+        bit 2, a
+        jr nz, +
+        ex af, af'
         ld a, $0a
         ld de, (51 << 8) | 68
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+        
         ; controller 1, d-pad right
+        bit 3, a
+        jr nz, +
+        ex af, af'
         ld a, $0a
         ld de, (80 << 8) | 68
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+
         ; controller 1, button 1
+        bit 4, a
+        jr nz, +
+        push af
         ld ix, Button
         ld a, 9
         ld de, (160 << 8) | 65
         call SPRITES_SetSprites
+        pop af
+        +;
+
         ; controller 1, button 2
+        bit 5, a
+        jr nz, +
+        push af
         ld ix, Button
         ld a, 9
         ld de, (189 << 8) | 65
         call SPRITES_SetSprites
+        pop af
+        +;
 
         ; controller 2, d-pad up
+        bit 6, a
+        jr nz, +
+        ex af, af'
         ld a, $09
         ld de, (66 << 8) | 125
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+        
         ; controller 2, d-pad down
+        bit 7, a
+        jr nz, +
+        ex af, af'
         ld a, $09
         ld de, (66 << 8) | 154
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+
+        in a, $dd
+
         ; controller 2, d-pad left
+        bit 0, a
+        jr nz, +
+        ex af, af'
         ld a, $0a
         ld de, (51 << 8) | 140
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+        
         ; controller 2, d-pad right
+        bit 1, a
+        jr nz, +
+        ex af, af'
         ld a, $0a
         ld de, (80 << 8) | 140
         call SPRITES_SetSprite
+        ex af, af'
+        +;
+
         ; controller 2, button 1
+        bit 2, a
+        jr nz, +
+        push af
         ld ix, Button
         ld a, 9
         ld de, (160 << 8) | 137
         call SPRITES_SetSprites
+        pop af
+        +;
+        
         ; controller 2, button 2
+        bit 3, a
+        jr nz, +
+        push af
         ld ix, Button
         ld a, 9
         ld de, (189 << 8) | 137
         call SPRITES_SetSprites
+        pop af
+        +;
 
         call SPRITES_TerminateSAT
 
-    ++: jr MainLoop
+        jp MainLoop
 .ends
 
 .section "vdp_data"
