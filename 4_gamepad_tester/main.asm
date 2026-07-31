@@ -17,6 +17,7 @@
 
 .include "vdp.asm"
 .include "sprites.asm"
+.include "controller.asm"
 
 .org $0000
 .section "startup" force
@@ -117,10 +118,10 @@
 
         ld bc, 0
 
-        in a, $dc
+        in a, CTLR_PORT_AB
 
         ; controller 1, d-pad up
-        bit 0, a
+        bit CTLR_PORT_AB_A_UP, a
         jr nz, +
         ex af, af'
         ld a, $09
@@ -130,7 +131,7 @@
         +:
 
         ; controller 1, d-pad down
-        bit 1, a
+        bit CTLR_PORT_AB_A_DOWN, a
         jr nz, +
         ex af, af'
         ld a, $09
@@ -140,7 +141,7 @@
         +;
 
         ; controller 1, d-pad left
-        bit 2, a
+        bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
         ex af, af'
         ld a, $0a
@@ -150,7 +151,7 @@
         +;
         
         ; controller 1, d-pad right
-        bit 3, a
+        bit CTLR_PORT_AB_A_RIGHT, a
         jr nz, +
         ex af, af'
         ld a, $0a
@@ -160,7 +161,7 @@
         +;
 
         ; controller 1, button 1
-        bit 4, a
+        bit CTLR_PORT_AB_A_TL, a
         jr nz, +
         push af
         ld ix, Button
@@ -171,7 +172,7 @@
         +;
 
         ; controller 1, button 2
-        bit 5, a
+        bit CTLR_PORT_AB_A_TR, a
         jr nz, +
         push af
         ld ix, Button
@@ -182,7 +183,7 @@
         +;
 
         ; controller 2, d-pad up
-        bit 6, a
+        bit CTLR_PORT_AB_B_UP, a
         jr nz, +
         ex af, af'
         ld a, $09
@@ -192,7 +193,7 @@
         +;
         
         ; controller 2, d-pad down
-        bit 7, a
+        bit CTLR_PORT_AB_B_DOWN, a
         jr nz, +
         ex af, af'
         ld a, $09
@@ -201,10 +202,10 @@
         ex af, af'
         +;
 
-        in a, $dd
+        in a, CTLR_PORT_BM
 
         ; controller 2, d-pad left
-        bit 0, a
+        bit CTLR_PORT_BM_B_LEFT, a
         jr nz, +
         ex af, af'
         ld a, $0a
@@ -214,7 +215,7 @@
         +;
         
         ; controller 2, d-pad right
-        bit 1, a
+        bit CTLR_PORT_BM_B_RIGHT, a
         jr nz, +
         ex af, af'
         ld a, $0a
@@ -224,7 +225,7 @@
         +;
 
         ; controller 2, button 1
-        bit 2, a
+        bit CTLR_PORT_BM_B_TL, a
         jr nz, +
         push af
         ld ix, Button
@@ -235,7 +236,7 @@
         +;
         
         ; controller 2, button 2
-        bit 3, a
+        bit CTLR_PORT_BM_B_TR, a
         jr nz, +
         push af
         ld ix, Button
