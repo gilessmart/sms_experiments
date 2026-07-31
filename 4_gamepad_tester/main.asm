@@ -116,137 +116,143 @@
     MainLoop:
         halt
 
-        ld bc, 0
+        exx
+            ld bc, 0
+        exx
 
         in a, CTLR_PORT_AB
+        ld b, a
 
         ; controller 1, d-pad up
-        bit CTLR_PORT_AB_A_UP, a
+        bit CTLR_PORT_AB_A_UP, b
         jr nz, +
-        ex af, af'
-        ld a, $09
-        ld de, (66 << 8) | 53
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $09
+            ld de, (66 << 8) | 53
+            call SPRITES_SetSprite
+        exx
         +:
 
         ; controller 1, d-pad down
-        bit CTLR_PORT_AB_A_DOWN, a
+        bit CTLR_PORT_AB_A_DOWN, b
         jr nz, +
-        ex af, af'
-        ld a, $09
-        ld de, (66 << 8) | 82
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $09
+            ld de, (66 << 8) | 82
+            call SPRITES_SetSprite
+        exx
         +;
 
         ; controller 1, d-pad left
-        bit CTLR_PORT_AB_A_LEFT, a
+        bit CTLR_PORT_AB_A_LEFT, b
         jr nz, +
-        ex af, af'
-        ld a, $0a
-        ld de, (51 << 8) | 68
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $0a
+            ld de, (51 << 8) | 68
+            call SPRITES_SetSprite
+        exx
         +;
         
         ; controller 1, d-pad right
-        bit CTLR_PORT_AB_A_RIGHT, a
+        bit CTLR_PORT_AB_A_RIGHT, b
         jr nz, +
-        ex af, af'
-        ld a, $0a
-        ld de, (80 << 8) | 68
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $0a
+            ld de, (80 << 8) | 68
+            call SPRITES_SetSprite
+        exx
         +;
 
         ; controller 1, button 1
-        bit CTLR_PORT_AB_A_TL, a
+        bit CTLR_PORT_AB_A_TL, b
         jr nz, +
-        push af
-        ld ix, Button
-        ld a, 9
-        ld de, (160 << 8) | 65
-        call SPRITES_SetSprites
-        pop af
+        exx
+            ld ix, Button
+            ld a, 9
+            ld de, (160 << 8) | 65
+            call SPRITES_SetSprites
+        exx
         +;
 
         ; controller 1, button 2
-        bit CTLR_PORT_AB_A_TR, a
+        bit CTLR_PORT_AB_A_TR, b
         jr nz, +
-        push af
-        ld ix, Button
-        ld a, 9
-        ld de, (189 << 8) | 65
-        call SPRITES_SetSprites
-        pop af
+        exx
+            ld ix, Button
+            ld a, 9
+            ld de, (189 << 8) | 65
+            call SPRITES_SetSprites
+        exx
         +;
 
         ; controller 2, d-pad up
-        bit CTLR_PORT_AB_B_UP, a
+        bit CTLR_PORT_AB_B_UP, b
         jr nz, +
-        ex af, af'
-        ld a, $09
-        ld de, (66 << 8) | 125
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $09
+            ld de, (66 << 8) | 125
+            call SPRITES_SetSprite
+        exx
         +;
         
         ; controller 2, d-pad down
-        bit CTLR_PORT_AB_B_DOWN, a
+        bit CTLR_PORT_AB_B_DOWN, b
         jr nz, +
-        ex af, af'
-        ld a, $09
-        ld de, (66 << 8) | 154
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $09
+            ld de, (66 << 8) | 154
+            call SPRITES_SetSprite
+        exx
         +;
 
         in a, CTLR_PORT_BM
+        ld b, a
 
         ; controller 2, d-pad left
-        bit CTLR_PORT_BM_B_LEFT, a
+        bit CTLR_PORT_BM_B_LEFT, b
         jr nz, +
-        ex af, af'
-        ld a, $0a
-        ld de, (51 << 8) | 140
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $0a
+            ld de, (51 << 8) | 140
+            call SPRITES_SetSprite
+        exx
         +;
         
         ; controller 2, d-pad right
-        bit CTLR_PORT_BM_B_RIGHT, a
+        bit CTLR_PORT_BM_B_RIGHT, b
         jr nz, +
-        ex af, af'
-        ld a, $0a
-        ld de, (80 << 8) | 140
-        call SPRITES_SetSprite
-        ex af, af'
+        exx
+            ld a, $0a
+            ld de, (80 << 8) | 140
+            call SPRITES_SetSprite
+        exx
         +;
 
         ; controller 2, button 1
-        bit CTLR_PORT_BM_B_TL, a
+        bit CTLR_PORT_BM_B_TL, b
         jr nz, +
-        push af
-        ld ix, Button
-        ld a, 9
-        ld de, (160 << 8) | 137
-        call SPRITES_SetSprites
-        pop af
+        exx
+            ld ix, Button
+            ld a, 9
+            ld de, (160 << 8) | 137
+            call SPRITES_SetSprites
+        exx
         +;
         
         ; controller 2, button 2
-        bit CTLR_PORT_BM_B_TR, a
+        bit CTLR_PORT_BM_B_TR, b
         jr nz, +
-        push af
-        ld ix, Button
-        ld a, 9
-        ld de, (189 << 8) | 137
-        call SPRITES_SetSprites
-        pop af
+        exx
+            ld ix, Button
+            ld a, 9
+            ld de, (189 << 8) | 137
+            call SPRITES_SetSprites
+        exx
         +;
 
-        call SPRITES_TerminateSAT
+        exx
+            call SPRITES_TerminateSAT
+        exx
 
         jp MainLoop
 .ends
