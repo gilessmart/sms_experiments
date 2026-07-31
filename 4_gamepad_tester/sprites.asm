@@ -2,7 +2,7 @@
     ShadowSAT: dsb 256
 .ends
 
-.section "spritelibs"    
+.section "sprite_lib"
     ; Writes a sprite to the shadow SAT
     ; Params: 
     ;   a = sprite pattern index

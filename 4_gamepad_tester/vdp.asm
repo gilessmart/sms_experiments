@@ -1,4 +1,4 @@
-.section "vdplibs"
+.section "vdp_lib"
     ; VDP commands
     .define VDP_CMD_VRAM_READ (%00 << 14)
     .define VDP_CMD_VRAM_WRITE (%01 << 14)
