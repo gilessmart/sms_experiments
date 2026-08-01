@@ -48,6 +48,37 @@
     retn
 .ends
 
+; Sets a sprite if the Z flag is set
+; Params: Sprite Index, X position, Y position (sprite drawn at Y + 1)
+; Clobbers: a', de', hl'
+; Updates:
+;   c' is incremented by 1
+.macro SetSpriteIfZ
+    jr nz, +
+    exx
+        ld a, \1
+        ld de, (\2 << 8) | \3
+        call SPRITES_SetSprite
+    exx
+    +:
+.endm
+
+; Sets a sprite group if the Z flag is set
+; Params: Group address, Sprite count, X position, Y position (sprite drawn at Y + 1)
+; Clobbers: a, a', de', hl', ix'
+; Updates:
+;   c' is incremented by the number of sprites written
+.macro SetSpriteGroupIfZ
+    jr nz, +
+    exx
+        ld ix, \1
+        ld a, \2
+        ld de, (\3 << 8) | \4
+        call SPRITES_SetSprites
+    exx
+    +;
+.endm
+
 .section "main"
     Init:
         ; initialise VDP registers
@@ -125,130 +156,54 @@
 
         ; controller 1, d-pad up
         bit CTLR_PORT_AB_A_UP, b
-        jr nz, +
-        exx
-            ld a, $09
-            ld de, (66 << 8) | 53
-            call SPRITES_SetSprite
-        exx
-        +:
+        SetSpriteIfZ $09, 66, 53
 
         ; controller 1, d-pad down
         bit CTLR_PORT_AB_A_DOWN, b
-        jr nz, +
-        exx
-            ld a, $09
-            ld de, (66 << 8) | 82
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $09, 66, 82
 
         ; controller 1, d-pad left
         bit CTLR_PORT_AB_A_LEFT, b
-        jr nz, +
-        exx
-            ld a, $0a
-            ld de, (51 << 8) | 68
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $0a, 51, 68
         
         ; controller 1, d-pad right
         bit CTLR_PORT_AB_A_RIGHT, b
-        jr nz, +
-        exx
-            ld a, $0a
-            ld de, (80 << 8) | 68
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $0a, 80, 68
 
         ; controller 1, button 1
         bit CTLR_PORT_AB_A_TL, b
-        jr nz, +
-        exx
-            ld ix, Button
-            ld a, 9
-            ld de, (160 << 8) | 65
-            call SPRITES_SetSprites
-        exx
-        +;
+        SetSpriteGroupIfZ Button, 9, 160, 65
 
         ; controller 1, button 2
         bit CTLR_PORT_AB_A_TR, b
-        jr nz, +
-        exx
-            ld ix, Button
-            ld a, 9
-            ld de, (189 << 8) | 65
-            call SPRITES_SetSprites
-        exx
-        +;
+        SetSpriteGroupIfZ Button, 9, 189, 65
 
         ; controller 2, d-pad up
         bit CTLR_PORT_AB_B_UP, b
-        jr nz, +
-        exx
-            ld a, $09
-            ld de, (66 << 8) | 125
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $09, 66, 125
         
         ; controller 2, d-pad down
         bit CTLR_PORT_AB_B_DOWN, b
-        jr nz, +
-        exx
-            ld a, $09
-            ld de, (66 << 8) | 154
-            call SPRITES_SetSprite
-        exx
-        +;
-
+        SetSpriteIfZ $09, 66, 154
+        
         in a, CTLR_PORT_BM
         ld b, a
 
         ; controller 2, d-pad left
         bit CTLR_PORT_BM_B_LEFT, b
-        jr nz, +
-        exx
-            ld a, $0a
-            ld de, (51 << 8) | 140
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $0a, 51, 140
         
         ; controller 2, d-pad right
         bit CTLR_PORT_BM_B_RIGHT, b
-        jr nz, +
-        exx
-            ld a, $0a
-            ld de, (80 << 8) | 140
-            call SPRITES_SetSprite
-        exx
-        +;
+        SetSpriteIfZ $0a, 80, 140
 
         ; controller 2, button 1
         bit CTLR_PORT_BM_B_TL, b
-        jr nz, +
-        exx
-            ld ix, Button
-            ld a, 9
-            ld de, (160 << 8) | 137
-            call SPRITES_SetSprites
-        exx
-        +;
+        SetSpriteGroupIfZ Button, 9, 160, 137
         
         ; controller 2, button 2
         bit CTLR_PORT_BM_B_TR, b
-        jr nz, +
-        exx
-            ld ix, Button
-            ld a, 9
-            ld de, (189 << 8) | 137
-            call SPRITES_SetSprites
-        exx
-        +;
+        SetSpriteGroupIfZ Button, 9, 189, 137
 
         exx
             call SPRITES_TerminateSAT
