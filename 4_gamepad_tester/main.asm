@@ -48,35 +48,17 @@
     retn
 .ends
 
-; Sets a sprite if the Z flag is set
-; Params: Sprite Index, X position, Y position (sprite drawn at Y + 1)
-; Clobbers: a', de', hl'
-; Updates:
-;   c' is incremented by 1
-.macro SetSpriteIfZ
-    jr nz, +
-    exx
-        ld a, \1
-        ld de, (\2 << 8) | \3
-        call SPRITES_SetSprite
-    exx
-    +:
+.macro SetSprite ARGS idx, x, y
+    ld a, idx
+    ld de, (x << 8) | y
+    call SPRITES_SetSprite
 .endm
 
-; Sets a sprite group if the Z flag is set
-; Params: Group address, Sprite count, X position, Y position (sprite drawn at Y + 1)
-; Clobbers: a, a', de', hl', ix'
-; Updates:
-;   c' is incremented by the number of sprites written
-.macro SetSpriteGroupIfZ
-    jr nz, +
-    exx
-        ld ix, \1
-        ld a, \2
-        ld de, (\3 << 8) | \4
-        call SPRITES_SetSprites
-    exx
-    +;
+.macro SetSprites ARGS data, count, x, y
+    ld ix, data
+    ld a, count
+    ld de, (x << 8) | y
+    call SPRITES_SetSprites
 .endm
 
 .section "main"
@@ -147,67 +129,109 @@
     MainLoop:
         halt
 
-        exx
-            ld bc, 0
-        exx
+        ld bc, 0
 
         in a, CTLR_PORT_AB
-        ld b, a
 
         ; controller 1, d-pad up
-        bit CTLR_PORT_AB_A_UP, b
-        SetSpriteIfZ $09, 66, 53
+        bit CTLR_PORT_AB_A_UP, a
+        jr nz, +
+            push af
+                SetSprite $09, 66, 53
+            pop af
+        +:
 
         ; controller 1, d-pad down
-        bit CTLR_PORT_AB_A_DOWN, b
-        SetSpriteIfZ $09, 66, 82
+        bit CTLR_PORT_AB_A_DOWN, a
+        jr nz, +
+            push af
+                SetSprite $09, 66, 82
+            pop af
+        +:
 
         ; controller 1, d-pad left
-        bit CTLR_PORT_AB_A_LEFT, b
-        SetSpriteIfZ $0a, 51, 68
+        bit CTLR_PORT_AB_A_LEFT, a
+        jr nz, +
+            push af
+                SetSprite $0a, 51, 68
+            pop af
+        +:
         
         ; controller 1, d-pad right
-        bit CTLR_PORT_AB_A_RIGHT, b
-        SetSpriteIfZ $0a, 80, 68
+        bit CTLR_PORT_AB_A_RIGHT, a
+        jr nz, +
+            push af
+                SetSprite $0a, 80, 68
+            pop af
+        +:
 
         ; controller 1, button 1
-        bit CTLR_PORT_AB_A_TL, b
-        SetSpriteGroupIfZ Button, 9, 160, 65
+        bit CTLR_PORT_AB_A_TL, a
+        jr nz, +
+            push af
+                SetSprites Button, 9, 160, 65
+            pop af
+        +:
 
         ; controller 1, button 2
-        bit CTLR_PORT_AB_A_TR, b
-        SetSpriteGroupIfZ Button, 9, 189, 65
+        bit CTLR_PORT_AB_A_TR, a
+        jr nz, +
+            push af
+                SetSprites Button, 9, 189, 65
+            pop af
+        +:
 
         ; controller 2, d-pad up
-        bit CTLR_PORT_AB_B_UP, b
-        SetSpriteIfZ $09, 66, 125
+        bit CTLR_PORT_AB_B_UP, a
+        jr nz, +
+            push af
+                SetSprite $09, 66, 125
+            pop af
+        +:
         
         ; controller 2, d-pad down
-        bit CTLR_PORT_AB_B_DOWN, b
-        SetSpriteIfZ $09, 66, 154
+        bit CTLR_PORT_AB_B_DOWN, a
+        jr nz, +
+            push af
+                SetSprite $09, 66, 154
+            pop af
+        +:
         
         in a, CTLR_PORT_BM
-        ld b, a
 
         ; controller 2, d-pad left
-        bit CTLR_PORT_BM_B_LEFT, b
-        SetSpriteIfZ $0a, 51, 140
+        bit CTLR_PORT_BM_B_LEFT, a
+        jr nz, +
+            push af
+                SetSprite $0a, 51, 140
+            pop af
+        +:
         
         ; controller 2, d-pad right
-        bit CTLR_PORT_BM_B_RIGHT, b
-        SetSpriteIfZ $0a, 80, 140
+        bit CTLR_PORT_BM_B_RIGHT, a
+        jr nz, +
+            push af
+                SetSprite $0a, 80, 140
+            pop af
+        +:
 
         ; controller 2, button 1
-        bit CTLR_PORT_BM_B_TL, b
-        SetSpriteGroupIfZ Button, 9, 160, 137
+        bit CTLR_PORT_BM_B_TL, a
+        jr nz, +
+            push af
+                SetSprites Button, 9, 160, 137
+            pop af
+        +:
         
         ; controller 2, button 2
-        bit CTLR_PORT_BM_B_TR, b
-        SetSpriteGroupIfZ Button, 9, 189, 137
+        bit CTLR_PORT_BM_B_TR, a
+        jr nz, +
+            push af
+                SetSprites Button, 9, 189, 137
+            pop af
+        +:
 
-        exx
-            call SPRITES_TerminateSAT
-        exx
+        call SPRITES_TerminateSAT
 
         jp MainLoop
 .ends
@@ -219,7 +243,7 @@
     .include "data/sprite_patterns.asm"
 .ends
 
-.section "sprite_groups"
+.section "sprite_data"
     Button:
     ; .db y, x, sprite_pattern_idx
     .db 0, 0, $00
