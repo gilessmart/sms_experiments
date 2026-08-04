@@ -12,14 +12,14 @@ def main():
 
     bg_tile_palette = Palette()
     bg_tile_patterns = PatternList(256)
-    tilemap = Tilemap(32*28)
+    tilemap = None
     sprite_palette = Palette()
     sprite_patterns = PatternList(192)
     
     # ingest the background tiles file
     if args.bg_tiles_file_path:
         with Image.open(args.bg_tiles_file_path).convert("RGBA") as img:
-            tiles = extract_tiles(img)
+            _, _, tiles = extract_tiles(img)
             remove_trailing_transparent_imgs(tiles)
             for tile in tiles:
                 colors = get_colors_as_rgba(tile)
@@ -31,21 +31,25 @@ def main():
     if args.bg_file_path:
         with Image.open(args.bg_file_path).convert("RGBA") as img:
             colors = get_colors_as_rgba(img)
-            validate_bg_tile_colors(colors)
-            bg_tile_palette.add_new_colors(colors)
-            
-            for tile in extract_tiles(img):
-                if (idx := bg_tile_patterns.index(tile)) is not None:
-                    tilemap.add_entry(TilemapEntry(idx, False, False))
-                elif (idx := bg_tile_patterns.index(flip_h(tile))) is not None:
-                    tilemap.add_entry(TilemapEntry(idx, True, False))
-                elif (idx := bg_tile_patterns.index(flip_v(tile))) is not None:
-                    tilemap.add_entry(TilemapEntry(idx, False, True))
-                elif (idx := bg_tile_patterns.index(flip_hv(tile))) is not None:
-                    tilemap.add_entry(TilemapEntry(idx, True, True))
-                else:
-                    index = bg_tile_patterns.add_pattern(tile)
-                    tilemap.add_entry(TilemapEntry(index, False, False))
+            cols, rows, tiles = extract_tiles(img)
+
+        validate_bg_tile_colors(colors)
+        bg_tile_palette.add_new_colors(colors)
+
+        tilemap = Tilemap(cols, rows)
+        
+        for tile in tiles:
+            if (idx := bg_tile_patterns.index(tile)) is not None:
+                tilemap.add_entry(TilemapEntry(idx, False, False))
+            elif (idx := bg_tile_patterns.index(flip_h(tile))) is not None:
+                tilemap.add_entry(TilemapEntry(idx, True, False))
+            elif (idx := bg_tile_patterns.index(flip_v(tile))) is not None:
+                tilemap.add_entry(TilemapEntry(idx, False, True))
+            elif (idx := bg_tile_patterns.index(flip_hv(tile))) is not None:
+                tilemap.add_entry(TilemapEntry(idx, True, True))
+            else:
+                index = bg_tile_patterns.add_pattern(tile)
+                tilemap.add_entry(TilemapEntry(index, False, False))
 
     # ingest the sprites file
     if args.sprites_file_path:
@@ -58,7 +62,7 @@ def main():
             opaque_colors = [color for color in colors if is_opaque(color)]
             sprite_palette.add_colors([(0, 0, 0, 0)] + opaque_colors)
 
-            tiles = extract_tiles(img)
+            _, _, tiles = extract_tiles(img)
             remove_trailing_transparent_imgs(tiles)
             sprite_patterns.add_patterns(tiles)
     
@@ -71,9 +75,8 @@ def main():
         # Output bg tile pattern image
         write_bg_tiles_img(args.output_dir_path, bg_tile_patterns)
     
-    if not tilemap.is_empty():
-        data = tilemap.get_bytes()
-        write_tilemap_asm(args.output_dir_path, data)
+    if tilemap is not None:
+        write_tilemap_asm(args.output_dir_path, tilemap)
     
     if not sprite_patterns.is_empty():
         def get_sprite_palette_idx(color: RGBA):

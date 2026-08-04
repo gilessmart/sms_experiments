@@ -18,16 +18,16 @@ class TilemapEntry:
         return bytes([high_byte, low_byte])
 
 class Tilemap:
-    capacity: int
+    cols: int
+    rows: int
     entries: list[TilemapEntry]
 
-    def __init__(self, capacity: int) -> None:
-        self.capacity = capacity
+    def __init__(self, cols: int, rows: int) -> None:
+        self.cols = cols
+        self.rows = rows
         self.entries = []
 
     def add_entry(self, entry: TilemapEntry) -> None:
-        if len(self.entries) >= self.capacity:
-            raise Exception("Tried to add tilemap entry to an already full tilemap")
         self.entries.append(entry)
 
     def is_empty(self) -> bool:
@@ -41,19 +41,21 @@ class Tilemap:
 
 # ASM output
 
-def write_tilemap_asm(output_dir: Optional[str], data: bytes) -> None:
-    content = _create_asm_content(data)
+def write_tilemap_asm(output_dir: Optional[str], tilemap: Tilemap) -> None:
+    data = tilemap.get_bytes()
+    content = _create_asm_content(data, tilemap.cols)
     write_file(output_dir, "tilemap.asm", content)
 
-def _create_asm_content(data: bytes):
+def _create_asm_content(data: bytes, cols: int):
     lines = ["Tilemap:"]
 
-    # split the data into rows of the tilemap, which are 2 bytes * 32 tiles
-    for row_num, row_bytes in enumerate(batched(data, 64)):
+    # split the data into rows of the tilemap (each entry is 2 bytes)
+    for row_num, row_bytes in enumerate(batched(data, cols * 2)):
         lines.append(f"; row {row_num}")
-        # output as 2 lines of ASM
-        lines.append(f".dw " + ",".join(_to_hex_words(row_bytes[:32])))
-        lines.append(f".dw " + ",".join(_to_hex_words(row_bytes[32:])))
+        # output as lines max 16 hex words
+        hex_word_groups = batched(_to_hex_words(row_bytes), 16)
+        for group in hex_word_groups:
+            lines.append(f".dw " + ",".join(group))
     
     lines.append("TilemapEnd:")
 

@@ -2,7 +2,7 @@
 
 SMS game image data generator.
 
-Produces color palettes, tile patterns, sprite patterns, and a tilemap in a format that can be used in an SMS game written in WLA Z80 assembler.
+Produces a color palette, tile patterns, sprite patterns, and a tilemap in a format that can be used in an SMS game written in WLA Z80 assembler.
 
 ## Requirements
 
@@ -91,8 +91,9 @@ The following files are written to the output directory:
   (Written if a **background tiles file** or a **background file** was supplied.)  
   Shows which tile is at which index.
 
-* **tilemap.asm** - tilemap / name table data.  
-  (Written if a **background file** was supplied.)
+* **tilemap.asm** - "virtual" tilemap / name table data.  
+  (Written if a **background file** was supplied.).  
+  Defines which background tile goes where.
 
 * **sprite_patterns.asm** - patterns extracted from the **sprites file**.  
   (Written if a **sprites file** was supplied.)
@@ -110,9 +111,6 @@ The following files are written to the output directory:
   The user would need to specify:
   * a color that would be used as the first color in the background palette
   * a list tile coordinates in the background file to be considered priority tiles
-
-* **Allow colors that are close to valid SMS colors**  
-  Or add a separate script that fixes images with invalid colors
 
 ## Dev Setup
 
