@@ -14,7 +14,7 @@ make
 
 ## Regenerate tile / palette data
 
-Use [SMS Data Gen](../sms_data_gen/):
+Use [SMS Data Gen](../tools/sms_data_gen/):
 
 ```sh
 smsdatagen -b images/background.png -o data
