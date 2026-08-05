@@ -10,6 +10,10 @@
     banks 1
 .endro
 
+.ramsection "main_state" slot 1
+    VScroll: db
+.ends
+
 .bank 0
 .slot 0
 
@@ -42,6 +46,8 @@
 .section "pause_handler" force
     retn
 .ends
+
+.define SCROLL_INCREMENT 5
 
 .section "main"
     Init:
@@ -95,6 +101,10 @@
         call SPRITES_TerminateSAT
         call SPRITES_FlushSAT
 
+        ; initialise state
+        ld a, 0
+        ld (VScroll), a
+
         ; turn on display
         ld hl, VDP_CMD_REGISTER_WRITE | (1 << 8) | %11100000 ; 16K VRAM, enable display, frame interrupts
         call VDP_SetAddress
@@ -104,31 +114,37 @@
     MainLoop:
         halt
 
+        ; load controller state into register b
         in a, CTLR_PORT_AB
+        ld b, a
 
-        ; controller 1, d-pad up
-        bit CTLR_PORT_AB_A_UP, a
+        ; load the current scroll value from RAM into register a
+        ld a, (VScroll)
+
+        ; update scroll value
+        bit CTLR_PORT_AB_A_UP, b
         jr nz, +
-            ; move up
+            sub SCROLL_INCREMENT    ; sets c flag if there was a borrow
+            ; limit min v-scroll value to 0
+            jr nc, +
+            ld a, 0
+        +:
+        bit CTLR_PORT_AB_A_DOWN, b
+        jr nz, +
+            add a, SCROLL_INCREMENT
+            ; limit max v-scroll value to 64
+            cp 64   ; sets c flag if a - 64 borrows i.e. if a < 64
+            jr c, +
+            ld a, 64
         +:
 
-        ; controller 1, d-pad down
-        bit CTLR_PORT_AB_A_DOWN, a
-        jr nz, +
-            ; move down
-        +:
+        ; store updated scroll value back to RAM
+        ld (VScroll), a
 
-        ; controller 1, d-pad left
-        bit CTLR_PORT_AB_A_LEFT, a
-        jr nz, +
-            ; move left
-        +:
-        
-        ; controller 1, d-pad right
-        bit CTLR_PORT_AB_A_RIGHT, a
-        jr nz, +
-            ; move right
-        +:
+        ; update VDP with new scroll value
+        ld hl, VDP_CMD_REGISTER_WRITE | (9 << 8)
+        ld l, a
+        call VDP_SetAddress
 
         jp MainLoop
 .ends
