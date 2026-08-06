@@ -9,6 +9,22 @@
     .define VDP_DATA_PORT $be
     .define VDP_CTRL_PORT $bf
 
+    ; Sets a VDP register
+    ; Params:
+    ;   num = register number
+    ;   val = register value
+    ;     optional - value from CPU register l is used if macro arg not supplied
+    ; Clobbers: a, hl
+    .macro VDP_SetRegister ARGS num, val
+        .if NARGS == 1
+            ld h, VDP_CMD_REGISTER_WRITE | num
+            call VDP_SetAddress
+        .elif NARGS == 2
+            ld hl, (VDP_CMD_REGISTER_WRITE | num) << 8 | val
+            call VDP_SetAddress
+        .endif
+    .endm
+
     ; Set command & address for incoming data
     ; Params: hl = command & address
     ; Clobbers: a
