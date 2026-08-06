@@ -133,9 +133,9 @@
         jr nz, +
             add a, SCROLL_INCREMENT
             ; limit max v-scroll value to 64
-            cp 64   ; sets c flag if a - 64 borrows i.e. if a < 64
+            cp 32   ; sets c flag if a - 64 borrows i.e. if a < 64
             jr c, +
-            ld a, 64
+            ld a, 32
         +:
 
         ; store updated scroll value back to RAM

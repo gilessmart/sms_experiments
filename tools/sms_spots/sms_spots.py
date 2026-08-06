@@ -7,7 +7,7 @@ import random
 from PIL import Image, ImageDraw
 
 width = 256
-height = 256
+height = 224
 spot_size = 14
 spot_gap = 18
 color_count = 16
