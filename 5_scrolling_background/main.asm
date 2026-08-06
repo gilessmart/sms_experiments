@@ -52,45 +52,45 @@
 .section "main"
     Init:
         ; initialise VDP registers
-        ld hl, VDP_CMD_REGISTER_WRITE | (0 << 8) | %00000100 ; mode 4
+        ld hl, (VDP_CMD_REGISTER_WRITE | 0) << 8 | %00000100 ; mode 4
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (1 << 8) | %10100000 ; 16K VRAM, frame interrupts
+        ld hl, (VDP_CMD_REGISTER_WRITE | 1) << 8 | %10100000 ; 16K VRAM, frame interrupts
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (2 << 8) | $ff       ; name table base address $3800
+        ld hl, (VDP_CMD_REGISTER_WRITE | 2) << 8 | $ff       ; name table base address $3800
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (3 << 8) | $ff       ; color table base address (mostly redundant in mode 4)
+        ld hl, (VDP_CMD_REGISTER_WRITE | 3) << 8 | $ff       ; color table base address (mostly redundant in mode 4)
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (4 << 8) | $ff       ; pattern generator table base address (mostly redundant in mode 4)
+        ld hl, (VDP_CMD_REGISTER_WRITE | 4) << 8 | $ff       ; pattern generator table base address (mostly redundant in mode 4)
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (5 << 8) | $ff       ; SAT base address ($ff gives base address of $3f00)
+        ld hl, (VDP_CMD_REGISTER_WRITE | 5) << 8 | $ff       ; SAT base address ($ff gives base address of $3f00)
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (6 << 8) | $ff       ; sprite pattern table at $2000
+        ld hl, (VDP_CMD_REGISTER_WRITE | 6) << 8 | $ff       ; sprite pattern table at $2000
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (7 << 8) | 0         ; BG color (from sprite palette)
+        ld hl, (VDP_CMD_REGISTER_WRITE | 7) << 8 | 0         ; BG color (from sprite palette)
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (8 << 8) | 0         ; BG X Scroll
+        ld hl, (VDP_CMD_REGISTER_WRITE | 8) << 8 | 0         ; BG X Scroll
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (9 << 8) | 0         ; BG Y Scroll
+        ld hl, (VDP_CMD_REGISTER_WRITE | 9) << 8 | 0         ; BG Y Scroll
         call VDP_SetAddress
-        ld hl, VDP_CMD_REGISTER_WRITE | (10 << 8) | $ff      ; line interrupt line counter
+        ld hl, (VDP_CMD_REGISTER_WRITE | 10) << 8 | $ff      ; line interrupt line counter
         call VDP_SetAddress
 
         ; setup CRAM (palette)
-        ld hl, VDP_CMD_CRAM_WRITE | $0000
+        ld hl, VDP_CMD_CRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, Palette
         ld bc, PaletteEnd - Palette
         call VDP_CopyData
 
         ; setup tile patterns
-        ld hl, VDP_CMD_VRAM_WRITE | $0000
+        ld hl, VDP_CMD_VRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, TilePatterns
         ld bc, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
         ; setup tilemap
-        ld hl, VDP_CMD_VRAM_WRITE | $3800
+        ld hl, VDP_CMD_VRAM_WRITE << 8 | $3800
         call VDP_SetAddress
         ld hl, Tilemap
         ld bc, $700
@@ -106,7 +106,7 @@
         ld (VScroll), a
 
         ; turn on display
-        ld hl, VDP_CMD_REGISTER_WRITE | (1 << 8) | %11100000 ; 16K VRAM, enable display, frame interrupts
+        ld hl, (VDP_CMD_REGISTER_WRITE | 1) << 8 | %11100000 ; 16K VRAM, enable display, frame interrupts
         call VDP_SetAddress
 
         ei
@@ -142,7 +142,7 @@
         ld (VScroll), a
 
         ; update VDP with new scroll value
-        ld hl, VDP_CMD_REGISTER_WRITE | (9 << 8)
+        ld h, VDP_CMD_REGISTER_WRITE | 9
         ld l, a
         call VDP_SetAddress
 

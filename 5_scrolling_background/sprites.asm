@@ -85,7 +85,7 @@
     ; Copies the shadow SAT to the VDP
     ; Clobbers: bc, hl
     SPRITES_FlushSAT:
-        ld hl, VDP_CMD_VRAM_WRITE | $3f00
+        ld hl, VDP_CMD_VRAM_WRITE << 8 | $3f00
         call VDP_SetAddress
         
         ld hl, ShadowSAT
@@ -93,7 +93,7 @@
         ld c, VDP_DATA_PORT
         otir
 
-        ld hl, VDP_CMD_VRAM_WRITE | $3f80
+        ld hl, VDP_CMD_VRAM_WRITE << 8 | $3f80
         call VDP_SetAddress
         
         ld hl, ShadowSAT + 128
