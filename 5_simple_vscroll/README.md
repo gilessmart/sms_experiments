@@ -1,6 +1,6 @@
-# Scrolling Background
+# Simple Vertical Scrolling
 
-Scrolls a background horizontally or vertically.
+Scrolls a background up & down 32px without changing the underlying tilemap.
 
 ## Dependencies
 
