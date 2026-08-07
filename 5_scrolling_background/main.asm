@@ -43,7 +43,7 @@
     VDP_SetRegister 9
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
-    
+
     reti
 .ends
 
@@ -111,7 +111,7 @@
         in a, CTLR_PORT_AB
         ld b, a
 
-        ; load the current scroll value from RAM into register a
+        ; load the current scroll value from RAM
         ld a, (VScroll)
 
         ; update scroll value
@@ -125,8 +125,8 @@
         bit CTLR_PORT_AB_A_DOWN, b
         jr nz, +
             add a, SCROLL_INCREMENT
-            ; limit max v-scroll value to 64
-            cp 32   ; sets c flag if a - 64 borrows i.e. if a < 64
+            ; limit max v-scroll value to 32
+            cp 32   ; sets c flag if a - 32 borrows i.e. if a < 32
             jr c, +
             ld a, 32
         +:
