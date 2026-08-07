@@ -35,9 +35,7 @@
 
 .org $0038
 .section "interrupt_handler" force
-    push af
-        in a, (VDP_CTRL_PORT)   ; read & clear VDP flags, clear interrupt request line
-    pop af
+    in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
     reti
 .ends
