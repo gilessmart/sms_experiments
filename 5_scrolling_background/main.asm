@@ -73,21 +73,21 @@
         ld hl, VDP_CMD_CRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, Palette
-        ld bc, PaletteEnd - Palette
+        ld de, PaletteEnd - Palette
         call VDP_CopyData
 
         ; setup tile patterns
         ld hl, VDP_CMD_VRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, TilePatterns
-        ld bc, TilePatternsEnd - TilePatterns
+        ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
         ; setup tilemap
         ld hl, VDP_CMD_VRAM_WRITE << 8 | $3800
         call VDP_SetAddress
         ld hl, Tilemap
-        ld bc, $700
+        ld de, TilemapEnd - Tilemap
         call VDP_CopyData
 
         ; initilise SAT

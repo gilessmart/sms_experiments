@@ -35,17 +35,23 @@
         out (VDP_CTRL_PORT), a
         ret
 
-    ; Copies data to the VDP
-    ; This is slow but supports larger data blocks than OTIR
-    ; Params: hl = data address, bc = data length
-    ; Clobbers: a, hl, bc
+    ; Copies a contiguous chunk of data from main memory to VRAM
+    ; Use VDP_SetAddress to set the destination address in VRAM
+    ; Params: hl = source address, de = data length
+    ; Clobbers: a, b, c, hl
     VDP_CopyData:
-    -:	ld a, (hl)
-        out (VDP_DATA_PORT), a
-        inc hl
-        dec bc
-        ld a, b
-        or c
-        jr nz, -
+        ld c, VDP_DATA_PORT
+        
+        ld b, 0
+        ld a, d ; data length MSB counter
+    -:  sub 1
+        jr c, + ; if MSB counter carried, jump ahead
+                ; otherwise use otir to copy 256 bytes, and repeat
+        otir
+        jr -
+
+        ; copy remaining bytes and return
+    +:  ld b, e
+        otir
         ret
 .ends
