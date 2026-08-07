@@ -36,7 +36,14 @@
 .org $0038
 .section "interrupt_handler" force
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
+
+    ; update VDP with new scroll value
+    ld a, (VScroll)
+    ld l, a
+    VDP_SetRegister 9
+
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
+    
     reti
 .ends
 
@@ -126,10 +133,6 @@
 
         ; store updated scroll value back to RAM
         ld (VScroll), a
-
-        ; update VDP with new scroll value
-        ld l, a
-        VDP_SetRegister 9
 
         jp MainLoop
 .ends
