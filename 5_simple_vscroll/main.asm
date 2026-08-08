@@ -17,7 +17,7 @@
 .bank 0
 .slot 0
 
-.sdsctag 0.1, "Gamepad Tester", "SMS programming experiment", "Giles Smart"
+.sdsctag 0.1, "Simple v-scroll demo", "SMS programming experiment", "Giles Smart"
 
 .include "vdp.asm"
 .include "sprites.asm"
