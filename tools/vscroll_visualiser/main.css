@@ -1,0 +1,135 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --main-fg-color: #222;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    color: var(--main-fg-color);
+    line-height: 1.85rem;
+}
+
+h1, h2, h3, p {
+    margin-bottom: 1rem;
+}
+
+h1, h2, h3 {
+    font-weight: normal;
+}
+
+h1 { 
+    font-size: 2rem;
+    margin-bottom: 1.8rem;
+}
+
+h2 { 
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+
+button, input {
+    display: inline-block;
+    padding: 2px 8px;
+    line-height: 1.25rem;
+    font-size: 0.9rem;
+    border: solid 1px var(--main-fg-color);
+    border-radius: 3px;
+}
+
+label {
+    display: inline-block;
+    line-height: 1.25rem;
+    padding: 3px 4px;
+}
+
+#main {
+    width: fit-content;
+    margin: 30px auto;
+}
+
+#visualiser {
+    display: flex;
+    margin-bottom: 1.5rem;
+}
+
+.shadow {
+    position: absolute;
+    z-index: 2;
+    backdrop-filter: grayscale(0.8) brightness(0.8);
+    width: 100%;
+}
+
+.outline {
+    position: absolute;
+    z-index: 3;
+    outline: solid #f3b;
+    border: solid #3de;
+    box-sizing: content-box;
+    height: 192px;
+    width: 100%;
+}
+
+#backgroundBox {
+    min-width: 168px;
+}
+
+#backgroundVis {
+    position: relative;
+    zoom: .5;
+    width: fit-content;
+}
+
+#backgroundVis > img {
+    z-index: 1;
+    width: 256px;
+    height: 896px;
+    display: block;
+}
+
+#backgroundVis > .outline {
+    margin-top: -8px;
+    margin-left: -8px;
+    border-width: 8px;
+    outline-width: 8px;
+}
+
+#tilemapVis {
+    position: relative;
+    width: 256px;
+    height: 224px;
+    zoom: 2;
+    background: url(checkerboard.png);
+}
+
+#tilemapVis.v-clip {
+    overflow: visible clip;
+}
+
+#tilemapVis > .row {
+    z-index: 1;
+    height: 8px;
+    overflow: hidden;
+}
+
+#tilemapVis > .row.bg {
+    background-image: url(background.png);
+}
+
+#tilemapVis > .outline {
+    margin-top: -2px;
+    margin-left: -2px;
+    border-width: 2px;
+    outline-width: 2px;
+}
+
+#controls {
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 auto;
+}

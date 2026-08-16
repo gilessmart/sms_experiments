@@ -1,0 +1,70 @@
+<html>
+    <head>
+        <title>SMS Vertical Scrolling Visualiser</title>
+        <link rel="stylesheet" href="main.css" />
+        <script type="text/javascript" src="main.js" defer></script>
+    </head>
+    <body>
+        <div id="main">
+            <h1>SMS Vertical Scrolling Visualiser</h1>
+            <div id="visualiser">
+                <div id="backgroundBox">
+                    <h2>Background</h2>
+                    <p>Scroll offset: <span id="bgScrollVal">0</span>px</p>
+                    <div id="backgroundVis">
+                        <img src="background.png" alt="background" />
+                        <div id="bgShadow1" class="shadow"></div>
+                        <div id="bgOutline" class="outline"></div>
+                        <div id="bgShadow2" class="shadow"></div>
+                    </div>
+                </div>
+                <div id="tilemapBox">
+                    <h2>Tilemap</h2>
+                    <p>Scroll offset: <span id="tmScrollVal">0</span>px</p>
+                    <div id="tilemapVis">
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div class="row"></div>
+                        <div id="tmOutline1" class="outline"></div>
+                        <div id="tmOutline2" class="outline"></div>
+                        <div id="tmShadow1" class="shadow"></div>
+                        <div id="tmShadow2" class="shadow"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="controls">
+                <button id="upButton">Up</button>
+                <button id="downButton">Down</button>
+                <div>
+                    <label for="scrollIntervalBox">Scroll interval:</label>
+                    <input type="number" id="scrollIntervalBox" min="1" max="8" value="8" />
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
