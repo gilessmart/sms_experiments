@@ -13,7 +13,9 @@
 
 .ramsection "main_state" slot 2
     BGScroll: dw
+    RedrawBGRow: dw
     VDPScroll: db
+    RedrawTilemapRow: db
 .ends
 
 .bank 0
@@ -44,7 +46,7 @@
     ld l, a
     VDP_SetRegister 9
 
-    call DrawLastRow
+    call RedrawRow
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -100,11 +102,13 @@
         call SPRITES_TerminateSAT
         call SPRITES_FlushSAT
 
-        ; initialise scroll offsets
+        ; initialise scroll offsets / redraw rows
         ld a, 0
         ld (VDPScroll), a
+        ld (RedrawTilemapRow), a
         ld bc, 0
         ld (BGScroll), bc
+        ld (RedrawBGRow), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -164,18 +168,27 @@
             ++:
             ld (VDPScroll), a
 
+            ; set the tilemap row to be redrawn
+            call LastVisibleTilemapRow
+            ld (RedrawTilemapRow), a
+
             ; udpate BGScroll
             add hl, bc
             ld (BGScroll), hl
+
+            ; set the background row to be redrawn
+            call LastVisisbleBgRow
+            ld (RedrawBGRow), hl
         +:
 
         jp MainLoop
-.ends
 
-.section "draw_last_row"
-    DrawLastRow:
+    ; Find the index number of the final tilemap row visible on the viewport
+    ; for a given VDPScroll value
+    ; Params: a = VDPScroll value
+    ; Updates: a = calculated index number
+    LastVisibleTilemapRow:
         ; find the vertical offset of the last line of the tilemap in the viewport
-        ld a, (VDPScroll)
         add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
         jr nc, +            ; if the add overflowed the byte, it essentially overflowed 32 pixels too late
             add a, 32       ; so we can add 32 to what we have now to get the right number
@@ -188,20 +201,43 @@
 
         ; divide by 8 to get row number
         .repeat 3
-        srl a           ; hl is less than 224 so no need to shift both bytes
+            srl a
         .endr
 
+        ret
+
+    ; Find the index number of the final background row visible on the viewport
+    ; for a given BGScroll offset
+    ; Params: hl = BGScroll value
+    ; Clobbers: bc
+    ; Updates: hl = calculated index number
+    LastVisisbleBgRow:
+        ; find the vertical offset of the last line of the background that we want to display
+        ld bc, 191
+        add hl, bc
+
+        ; divide by 8 to get row number
+        .repeat 3
+            srl h
+            rr l
+        .endr
+
+        ret
+
+.ends
+
+.section "draw_last_row"
+    RedrawRow:
+        ld a, (RedrawTilemapRow)
+        
         ; load a into hl
         ld h, 0
         ld l, a
         
         ; multiply hl by 64 (number of bytes per row in vram)
-        .repeat 3
-        sla l           ; hl is less than 28 so no need to shift both bytes
-        .endr
-        .repeat 3
-        sla l
-        rl h
+        .repeat 6
+            sla l
+            rl h
         .endr
 
         ; add the magic numbers for writing to the tilemap
@@ -210,21 +246,12 @@
 
         call VDP_SetAddress
 
-        ; find the vertical offset of the last line of the background that we want to display
-        ld hl, (BGScroll)
-        ld bc, 191
-        add hl, bc
-
-        ; divide by 8 to get row number
-        .repeat 3
-        srl h
-        rr l
-        .endr
+        ld hl, (RedrawBGRow)
 
         ; multiply by 64 (number of bytes per row in tilemap data)
         .repeat 6
-        sla l
-        rl h
+            sla l
+            rl h
         .endr
 
         ; add the start address
