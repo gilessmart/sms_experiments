@@ -12,7 +12,8 @@
 .endro
 
 .ramsection "main_state" slot 2
-    VScroll: db
+    BGScroll: dw
+    VDPScroll: db
 .ends
 
 .bank 0
@@ -39,9 +40,11 @@
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
 
     ; update VDP with new scroll value
-    ld a, (VScroll)
+    ld a, (VDPScroll)
     ld l, a
     VDP_SetRegister 9
+
+    call DrawLastRow
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -53,7 +56,8 @@
     retn
 .ends
 
-.define SCROLL_INCREMENT 5
+.define SCROLL_INCREMENT 4       ; max = 8
+.define MAX_BG_SCROLL 1904 - 192 ; height of background - 192
 
 .section "main"
     Init:
@@ -88,7 +92,7 @@
         ld hl, VDP_CMD_VRAM_WRITE << 8 | $3800
         call VDP_SetAddress
         ld hl, Tilemap
-        ld de, $700
+        ld de, $600
         call VDP_CopyData
 
         ; initilise SAT
@@ -96,9 +100,11 @@
         call SPRITES_TerminateSAT
         call SPRITES_FlushSAT
 
-        ; initialise state
+        ; initialise scroll offsets
         ld a, 0
-        ld (VScroll), a
+        ld (VDPScroll), a
+        ld bc, 0
+        ld (BGScroll), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -108,34 +114,129 @@
     MainLoop:
         halt
 
-        ; load controller state into register b
+        ; load current BG scroll value from RAM
+        ld bc, (BGScroll)
+
+        ; load controller state into register d
         in a, CTLR_PORT_AB
-        ld b, a
+        ld e, a
 
-        ; load the current scroll value from RAM
-        ld a, (VScroll)
+        ; check for scroll up
+        ; bit CTLR_PORT_AB_A_UP, e
+        ; jr nz, +
+        ; ; TODO
+        ; +:
 
-        ; update scroll value
-        bit CTLR_PORT_AB_A_UP, b
+        ; scroll down
+        bit CTLR_PORT_AB_A_DOWN, e
         jr nz, +
-            sub SCROLL_INCREMENT    ; sets c flag if there was a borrow
-            ; limit min v-scroll value to 0
-            jr nc, +
-            ld a, 0
-        +:
-        bit CTLR_PORT_AB_A_DOWN, b
-        jr nz, +
-            add a, SCROLL_INCREMENT
-            ; limit max v-scroll value to 32
-            cp 32   ; sets c flag if a - 32 borrows i.e. if a < 32
-            jr c, +
-            ld a, 32
-        +:
+            ; find distance to the max scroll distance
+            ld hl, MAX_BG_SCROLL
+            or a        ; clear carry flag
+            sbc hl, bc  ; hl = hl - bc
 
-        ; store updated scroll value back to RAM
-        ld (VScroll), a
+            ; if distance is 0, nothing to do
+            ld a, h
+            or l
+            jr z, + 
+
+            ; otherwise we need to scroll by the smaller of hl or SCROLL_INCREMENT
+            ; 1. check HOB of hl
+            ld a, h
+            cp 0                            ; if HOB of remaining distance == 0, Z is set
+            jr z, ++                        ; in which case move on to check LOB
+                ld hl, SCROLL_INCREMENT     ; otherwise clamp to SCROLL_INCREMENT
+                jr +++
+            ++:
+            ; 2. check LOB of HL
+            ld a, l
+            cp SCROLL_INCREMENT             ; if remaining scroll value < SCROLL_INCREMENT, C is set
+            jr c, +++                       ; in which case the remaining scroll distance can be left alone
+                ld l, SCROLL_INCREMENT      ; otherwise clamp to SCROLL_INCREMENT
+            +++:
+
+            ; update VDPScroll
+            ld a, (VDPScroll)
+            add a, l
+            cp 224
+            jr c, ++    ; if a already less than 224, skip
+                sub 224 ; otherwise we subtract 224
+            ++:
+            ld (VDPScroll), a
+
+            ; udpate BGScroll
+            add hl, bc
+            ld (BGScroll), hl
+        +:
 
         jp MainLoop
+.ends
+
+.section "draw_last_row"
+    DrawLastRow:
+        ; find the vertical offset of the last line of the tilemap in the viewport
+        ld a, (VDPScroll)
+        add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
+        jr nc, +            ; if the add overflowed the byte, it essentially overflowed 32 pixels too late
+            add a, 32       ; so we can add 32 to what we have now to get the right number
+            jr ++           ; and skip the regular modulo check
+        +: 
+        cp 224              
+        jr c, ++            ; if a already less than 224, skip
+            sub 224         ; otherwise we subtract 224
+        ++:
+
+        ; divide by 8 to get row number
+        .repeat 3
+        srl a           ; hl is less than 224 so no need to shift both bytes
+        .endr
+
+        ; load a into hl
+        ld h, 0
+        ld l, a
+        
+        ; multiply hl by 64 (number of bytes per row in vram)
+        .repeat 3
+        sla l           ; hl is less than 28 so no need to shift both bytes
+        .endr
+        .repeat 3
+        sla l
+        rl h
+        .endr
+
+        ; add the magic numbers for writing to the tilemap
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
+        add hl, bc
+
+        call VDP_SetAddress
+
+        ; find the vertical offset of the last line of the background that we want to display
+        ld hl, (BGScroll)
+        ld bc, 191
+        add hl, bc
+
+        ; divide by 8 to get row number
+        .repeat 3
+        srl h
+        rr l
+        .endr
+
+        ; multiply by 64 (number of bytes per row in tilemap data)
+        .repeat 6
+        sla l
+        rl h
+        .endr
+
+        ; add the start address
+        ld bc, Tilemap
+        add hl, bc
+
+        ; write one line (64 bytes) of data
+        ld de, $40
+        
+        call VDP_CopyData
+        
+        ret
 .ends
 
 .section "vdp_data"
