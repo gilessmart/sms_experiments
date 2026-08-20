@@ -15,7 +15,7 @@
     BGScroll: dw
     RedrawBGRow: dw
     VDPScroll: db
-    RedrawTilemapRow: db
+    RedrawVDPRow: db
 .ends
 
 .bank 0
@@ -105,7 +105,7 @@
         ; initialise scroll offsets / redraw rows
         ld a, 0
         ld (VDPScroll), a
-        ld (RedrawTilemapRow), a
+        ld (RedrawVDPRow), a
         ld bc, 0
         ld (BGScroll), bc
         ld (RedrawBGRow), bc
@@ -168,9 +168,9 @@
             ++:
             ld (VDPScroll), a
 
-            ; set the tilemap row to be redrawn
-            call LastVisibleTilemapRow
-            ld (RedrawTilemapRow), a
+            ; set the VDP row to be redrawn
+            call LastVisibleVDPRow
+            ld (RedrawVDPRow), a
 
             ; udpate BGScroll
             add hl, bc
@@ -183,15 +183,15 @@
 
         jp MainLoop
 
-    ; Find the index number of the final tilemap row visible on the viewport
+    ; Find the index number of the final VDP tilemap row visible on the viewport
     ; for a given VDPScroll value
     ; Params: a = VDPScroll value
     ; Updates: a = calculated index number
-    LastVisibleTilemapRow:
+    LastVisibleVDPRow:
         ; find the vertical offset of the last line of the tilemap in the viewport
         add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
-        jr nc, +            ; if the add overflowed the byte, it essentially overflowed 32 pixels too late
-            add a, 32       ; so we can add 32 to what we have now to get the right number
+        jr nc, +            ; if the add overflowed, it essentially did modulo 256
+            add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
             jr ++           ; and skip the regular modulo check
         +: 
         cp 224              
@@ -226,9 +226,9 @@
 
 .ends
 
-.section "draw_last_row"
+.section "redraw_row"
     RedrawRow:
-        ld a, (RedrawTilemapRow)
+        ld a, (RedrawVDPRow)
         
         ; load a into hl
         ld h, 0
@@ -240,7 +240,7 @@
             rl h
         .endr
 
-        ; add the magic numbers for writing to the tilemap
+        ; add the base address of the VDP tilemap
         ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
         add hl, bc
 
