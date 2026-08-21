@@ -170,25 +170,21 @@
 
         jp MainLoop
 
-    ; Adjusts a BGScroll value to be the max of the current value or SCROLL_INCREMENT
-    ; Params: hl: BGScroll value
-    ; Clobbers: a
+    ; Adjusts a value to be the max of the current value or SCROLL_INCREMENT
+    ; Params: hl: value to adjust
+    ; Clobbers: de
     ; Sets: hl = clamped value
     ClampToScrollIncrement:
-        ; 1. check HOB of hl
-        ld a, h
-        cp 0                            ; if HOB of remaining distance == 0, Z is set
-        jr z, ++                        ; in which case move on to check LOB
-            ld hl, SCROLL_INCREMENT     ; otherwise clamp to SCROLL_INCREMENT
-            jr +++
-        ++:
-        ; 2. check LOB of HL
-        ld a, l
-        cp SCROLL_INCREMENT             ; if remaining scroll value < SCROLL_INCREMENT, C is set
-        jr c, +++                       ; in which case the remaining scroll distance can be left alone
-            ld l, SCROLL_INCREMENT      ; otherwise clamp to SCROLL_INCREMENT
-        +++:
-
+        ld de, SCROLL_INCREMENT
+        or a        ; clear c flag
+        sbc hl, de
+        jr nc, +
+            ; if c is set, de (SCROLL_INCREMENT) was greater than hl
+            add hl, de  ; restore hl to its previous value
+            ret
+        +:
+        ; otherwise clamp to SCROLL_INCREMENT
+        ld hl, SCROLL_INCREMENT
         ret
 
     ; Find the index number of the final VDP tilemap row visible on the viewport
