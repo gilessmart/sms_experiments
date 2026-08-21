@@ -122,11 +122,43 @@
         in a, CTLR_PORT_AB
         ld e, a
 
-        ; check for scroll up
-        ; bit CTLR_PORT_AB_A_UP, e
-        ; jr nz, +
-        ; ; TODO
-        ; +:
+        ; scroll up
+        bit CTLR_PORT_AB_A_UP, e
+        jr nz, +
+            ; load current BG scroll value from RAM
+            ld hl, (BGScroll)
+
+            ; if distance is 0, nothing to do
+            ld a, h
+            or l
+            jr z, +
+
+            call ClampToScrollIncrement
+
+            ; update VDPScroll
+            ld a, (VDPScroll)
+            sub a, l
+            jr nc, ++   ; if is now less than 0
+                add 224 ; add 224
+            ++:
+            ld (VDPScroll), a
+
+            ; set the VDP row to be redrawn
+            call FirstVisibleVDPRow
+            ld (RedrawVDPRow), a
+
+            ; udpate BGScroll
+            ld b, h     ; copy hl
+            ld c, l     ; to bc
+            ld hl, (BGScroll)
+            or a        ; clear carry flag
+            sbc hl, bc
+            ld (BGScroll), hl
+
+            ; set the background row to be redrawn
+            call FirstVisisbleBgRow
+            ld (RedrawBGRow), hl
+        +:
 
         ; scroll down
         bit CTLR_PORT_AB_A_DOWN, e
@@ -137,7 +169,7 @@
             ; find distance to the max scroll distance
             ld hl, MAX_BG_SCROLL
             or a        ; clear carry flag
-            sbc hl, bc  ; hl = hl - bc
+            sbc hl, bc
 
             ; if distance is 0, nothing to do
             ld a, h
@@ -160,6 +192,7 @@
             ld (RedrawVDPRow), a
 
             ; udpate BGScroll
+            ld bc, (BGScroll)
             add hl, bc
             ld (BGScroll), hl
 
@@ -172,23 +205,32 @@
 
     ; Adjusts a value to be the max of the current value or SCROLL_INCREMENT
     ; Params: hl: value to adjust
-    ; Clobbers: de
+    ; Clobbers: bc
     ; Sets: hl = clamped value
     ClampToScrollIncrement:
-        ld de, SCROLL_INCREMENT
+        ld bc, SCROLL_INCREMENT
         or a        ; clear c flag
-        sbc hl, de
+        sbc hl, bc
         jr nc, +
-            ; if c is set, de (SCROLL_INCREMENT) was greater than hl
-            add hl, de  ; restore hl to its previous value
+            ; if c is set, bc (SCROLL_INCREMENT) was greater than hl
+            add hl, bc  ; restore hl to its previous value
             ret
         +:
         ; otherwise clamp to SCROLL_INCREMENT
         ld hl, SCROLL_INCREMENT
         ret
+    
+    ; Find the index number of the first VDP tilemap row visible on the viewport for a given VDPScroll value
+    ; Params: a = VDPScroll value
+    ; Updates: a = calculated index number
+    FirstVisibleVDPRow:
+        ; divide by 8 to get row number
+        .repeat 3
+            srl a
+        .endr
+        ret
 
-    ; Find the index number of the final VDP tilemap row visible on the viewport
-    ; for a given VDPScroll value
+    ; Find the index number of the final VDP tilemap row visible on the viewport for a given VDPScroll value
     ; Params: a = VDPScroll value
     ; Updates: a = calculated index number
     LastVisibleVDPRow:
@@ -208,6 +250,18 @@
             srl a
         .endr
 
+        ret
+
+    ; Find the index number of the final background row visible on the viewport
+    ; for a given BGScroll offset
+    ; Params: hl = BGScroll value
+    ; Updates: hl = calculated index number
+    FirstVisisbleBgRow:
+        ; divide by 8 to get row number
+        .repeat 3
+            srl h
+            rr l
+        .endr
         ret
 
     ; Find the index number of the final background row visible on the viewport
