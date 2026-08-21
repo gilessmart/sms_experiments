@@ -118,9 +118,6 @@
     MainLoop:
         halt
 
-        ; load current BG scroll value from RAM
-        ld bc, (BGScroll)
-
         ; load controller state into register d
         in a, CTLR_PORT_AB
         ld e, a
@@ -134,6 +131,9 @@
         ; scroll down
         bit CTLR_PORT_AB_A_DOWN, e
         jr nz, +
+            ; load current BG scroll value from RAM
+            ld bc, (BGScroll)
+
             ; find distance to the max scroll distance
             ld hl, MAX_BG_SCROLL
             or a        ; clear carry flag
@@ -144,20 +144,7 @@
             or l
             jr z, + 
 
-            ; otherwise we need to scroll by the smaller of hl or SCROLL_INCREMENT
-            ; 1. check HOB of hl
-            ld a, h
-            cp 0                            ; if HOB of remaining distance == 0, Z is set
-            jr z, ++                        ; in which case move on to check LOB
-                ld hl, SCROLL_INCREMENT     ; otherwise clamp to SCROLL_INCREMENT
-                jr +++
-            ++:
-            ; 2. check LOB of HL
-            ld a, l
-            cp SCROLL_INCREMENT             ; if remaining scroll value < SCROLL_INCREMENT, C is set
-            jr c, +++                       ; in which case the remaining scroll distance can be left alone
-                ld l, SCROLL_INCREMENT      ; otherwise clamp to SCROLL_INCREMENT
-            +++:
+            call ClampToScrollIncrement
 
             ; update VDPScroll
             ld a, (VDPScroll)
@@ -182,6 +169,27 @@
         +:
 
         jp MainLoop
+
+    ; Adjusts a BGScroll value to be the max of the current value or SCROLL_INCREMENT
+    ; Params: hl: BGScroll value
+    ; Clobbers: a
+    ; Sets: hl = clamped value
+    ClampToScrollIncrement:
+        ; 1. check HOB of hl
+        ld a, h
+        cp 0                            ; if HOB of remaining distance == 0, Z is set
+        jr z, ++                        ; in which case move on to check LOB
+            ld hl, SCROLL_INCREMENT     ; otherwise clamp to SCROLL_INCREMENT
+            jr +++
+        ++:
+        ; 2. check LOB of HL
+        ld a, l
+        cp SCROLL_INCREMENT             ; if remaining scroll value < SCROLL_INCREMENT, C is set
+        jr c, +++                       ; in which case the remaining scroll distance can be left alone
+            ld l, SCROLL_INCREMENT      ; otherwise clamp to SCROLL_INCREMENT
+        +++:
+
+        ret
 
     ; Find the index number of the final VDP tilemap row visible on the viewport
     ; for a given VDPScroll value
