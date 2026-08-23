@@ -26,6 +26,7 @@
 .include "vdp.asm"
 .include "sprites.asm"
 .include "controller.asm"
+.include "rotate.asm"
 
 .org $0000
 .section "startup" force
@@ -224,10 +225,7 @@
     ; Params: a = VDPScroll value
     ; Updates: a = calculated index number
     FirstVisibleVDPRow:
-        ; divide by 8 to get row number
-        .repeat 3
-            srl a
-        .endr
+        RotateRightA 3
         ret
 
     ; Find the index number of the final VDP tilemap row visible on the viewport for a given VDPScroll value
@@ -246,9 +244,7 @@
         ++:
 
         ; divide by 8 to get row number
-        .repeat 3
-            srl a
-        .endr
+        RotateRightA 3
 
         ret
 
@@ -258,10 +254,7 @@
     ; Updates: hl = calculated index number
     FirstVisisbleBgRow:
         ; divide by 8 to get row number
-        .repeat 3
-            srl h
-            rr l
-        .endr
+        RotateRightHL 3
         ret
 
     ; Find the index number of the final background row visible on the viewport
@@ -275,13 +268,9 @@
         add hl, bc
 
         ; divide by 8 to get row number
-        .repeat 3
-            srl h
-            rr l
-        .endr
+        RotateRightHL 3
 
         ret
-
 .ends
 
 .section "redraw_row"
@@ -293,10 +282,7 @@
         ld l, a
         
         ; multiply hl by 64 (number of bytes per row in vram)
-        .repeat 6
-            sla l
-            rl h
-        .endr
+        RotateLeftHL 6
 
         ; add the base address of the VDP tilemap
         ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
@@ -307,10 +293,7 @@
         ld hl, (RedrawBGRow)
 
         ; multiply by 64 (number of bytes per row in tilemap data)
-        .repeat 6
-            sla l
-            rl h
-        .endr
+        RotateLeftHL 6
 
         ; add the start address
         ld bc, Tilemap
