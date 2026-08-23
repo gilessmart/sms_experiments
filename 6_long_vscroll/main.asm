@@ -144,8 +144,10 @@
             ++:
             ld (VDPScroll), a
 
+            ; integer divide by 8 to get row number
+            RotateRightA 3
+
             ; set the VDP row to be redrawn
-            call FirstVisibleVDPRow
             ld (RedrawVDPRow), a
 
             ; udpate BGScroll
@@ -156,8 +158,10 @@
             sbc hl, bc
             ld (BGScroll), hl
 
+            ; integer divide by 8 to get row number
+            RotateRightHL 3
+
             ; set the background row to be redrawn
-            call FirstVisisbleBgRow
             ld (RedrawBGRow), hl
         +:
 
@@ -188,8 +192,21 @@
             ++:
             ld (VDPScroll), a
 
+            ; find the vertical offset of the last line of the tilemap in the viewport
+            add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
+            jr nc, ++           ; if the add overflowed, it essentially did modulo 256
+                add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
+                jr +++          ; and skip the regular modulo check
+            ++: 
+            cp 224              
+            jr c, +++           ; if a already less than 224, skip
+                sub 224         ; otherwise we subtract 224
+            +++:
+
+            ; divide by 8 to get row number
+            RotateRightA 3
+
             ; set the VDP row to be redrawn
-            call LastVisibleVDPRow
             ld (RedrawVDPRow), a
 
             ; udpate BGScroll
@@ -197,8 +214,14 @@
             add hl, bc
             ld (BGScroll), hl
 
+            ; find the vertical offset of the last line of the background that we want to display
+            ld bc, 191
+            add hl, bc
+
+            ; divide by 8 to get row number
+            RotateRightHL 3
+
             ; set the background row to be redrawn
-            call LastVisisbleBgRow
             ld (RedrawBGRow), hl
         +:
 
@@ -219,57 +242,6 @@
         +:
         ; otherwise clamp to SCROLL_INCREMENT
         ld hl, SCROLL_INCREMENT
-        ret
-    
-    ; Find the index number of the first VDP tilemap row visible on the viewport for a given VDPScroll value
-    ; Params: a = VDPScroll value
-    ; Updates: a = calculated index number
-    FirstVisibleVDPRow:
-        RotateRightA 3
-        ret
-
-    ; Find the index number of the final VDP tilemap row visible on the viewport for a given VDPScroll value
-    ; Params: a = VDPScroll value
-    ; Updates: a = calculated index number
-    LastVisibleVDPRow:
-        ; find the vertical offset of the last line of the tilemap in the viewport
-        add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
-        jr nc, +            ; if the add overflowed, it essentially did modulo 256
-            add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
-            jr ++           ; and skip the regular modulo check
-        +: 
-        cp 224              
-        jr c, ++            ; if a already less than 224, skip
-            sub 224         ; otherwise we subtract 224
-        ++:
-
-        ; divide by 8 to get row number
-        RotateRightA 3
-
-        ret
-
-    ; Find the index number of the final background row visible on the viewport
-    ; for a given BGScroll offset
-    ; Params: hl = BGScroll value
-    ; Updates: hl = calculated index number
-    FirstVisisbleBgRow:
-        ; divide by 8 to get row number
-        RotateRightHL 3
-        ret
-
-    ; Find the index number of the final background row visible on the viewport
-    ; for a given BGScroll offset
-    ; Params: hl = BGScroll value
-    ; Clobbers: bc
-    ; Updates: hl = calculated index number
-    LastVisisbleBgRow:
-        ; find the vertical offset of the last line of the background that we want to display
-        ld bc, 191
-        add hl, bc
-
-        ; divide by 8 to get row number
-        RotateRightHL 3
-
         ret
 .ends
 
