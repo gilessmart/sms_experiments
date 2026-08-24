@@ -121,111 +121,132 @@
 
         ; load controller state into register d
         in a, CTLR_PORT_AB
-        ld e, a
 
         ; scroll up
-        bit CTLR_PORT_AB_A_UP, e
+        bit CTLR_PORT_AB_A_UP, a
         jr nz, +
-            ; load current BG scroll value from RAM
-            ld hl, (BGScroll)
-
-            ; if distance is 0, nothing to do
-            ld a, h
-            or l
-            jr z, +
-
-            call ClampToScrollIncrement
-
-            ; update VDPScroll
-            ld a, (VDPScroll)
-            sub a, l
-            jr nc, ++   ; if is now less than 0
-                add 224 ; add 224
-            ++:
-            ld (VDPScroll), a
-
-            ; integer divide by 8 to get row number
-            RotateRightA 3
-
-            ; set the VDP row to be redrawn
-            ld (RedrawVDPRow), a
-
-            ; udpate BGScroll
-            ld b, h     ; copy hl
-            ld c, l     ; to bc
-            ld hl, (BGScroll)
-            or a        ; clear carry flag
-            sbc hl, bc
-            ld (BGScroll), hl
-
-            ; integer divide by 8 to get row number
-            RotateRightHL 3
-
-            ; set the background row to be redrawn
-            ld (RedrawBGRow), hl
+            call ScrollUp
+            jr MainLoop
         +:
 
         ; scroll down
-        bit CTLR_PORT_AB_A_DOWN, e
+        bit CTLR_PORT_AB_A_DOWN, a
         jr nz, +
-            ; load current BG scroll value from RAM
-            ld bc, (BGScroll)
-
-            ; find distance to the max scroll distance
-            ld hl, MAX_BG_SCROLL
-            or a        ; clear carry flag
-            sbc hl, bc
-
-            ; if distance is 0, nothing to do
-            ld a, h
-            or l
-            jr z, + 
-
-            call ClampToScrollIncrement
-
-            ; update VDPScroll
-            ld a, (VDPScroll)
-            add a, l
-            cp 224
-            jr c, ++    ; if a already less than 224, skip
-                sub 224 ; otherwise we subtract 224
-            ++:
-            ld (VDPScroll), a
-
-            ; find the vertical offset of the last line of the tilemap in the viewport
-            add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
-            jr nc, ++           ; if the add overflowed, it essentially did modulo 256
-                add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
-                jr +++          ; and skip the regular modulo check
-            ++: 
-            cp 224              
-            jr c, +++           ; if a already less than 224, skip
-                sub 224         ; otherwise we subtract 224
-            +++:
-
-            ; divide by 8 to get row number
-            RotateRightA 3
-
-            ; set the VDP row to be redrawn
-            ld (RedrawVDPRow), a
-
-            ; udpate BGScroll
-            ld bc, (BGScroll)
-            add hl, bc
-            ld (BGScroll), hl
-
-            ; find the vertical offset of the last line of the background that we want to display
-            ld bc, 191
-            add hl, bc
-
-            ; divide by 8 to get row number
-            RotateRightHL 3
-
-            ; set the background row to be redrawn
-            ld (RedrawBGRow), hl
+            call ScrollDown
+            jr MainLoop
         +:
 
-        jp MainLoop
+        jr MainLoop
+
+    ; Decrements scroll values & sets which row of the background gets shown at the top of the screen
+    ; Clobbers: a, hl, bc, de
+    ScrollUp:
+        ; load current BG scroll value from RAM
+        ld hl, (BGScroll)
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; store original BGScroll value for later
+        ld d, h
+        ld e, l
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; reduce VDPScroll by clamped value
+        ld a, (VDPScroll)   ; load
+        sub a, l            ; reduce
+        jr nc, ++           ; if is now less than 0
+            add 224         ; add 224
+        ++:
+        ld (VDPScroll), a   ; store
+
+        ; integer divide by 8 to get row number
+        RotateRightA 3
+
+        ; set the VDP row to be redrawn
+        ld (RedrawVDPRow), a
+
+        ; reduce BGScroll by clamped value
+        ex hl, de
+        or a        ; clear carry flag
+        sbc hl, de
+        ld (BGScroll), hl
+
+        ; integer divide by 8 to get row number
+        RotateRightHL 3
+
+        ; set the background row to be redrawn
+        ld (RedrawBGRow), hl
+
+        ret
+    
+    ; Increments scroll values & sets which row of the background gets shown at the bottom of the screen
+    ; Clobbers: a, hl, bc, de
+    ScrollDown:
+        ; load current BG scroll value from RAM
+        ld hl, (BGScroll)
+
+        ; swap it into de
+        ex hl, de
+
+        ; find max available scroll distance
+        ld hl, MAX_BG_SCROLL
+        or a        ; clear carry flag
+        sbc hl, de
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; increase VDPScroll by clamped value
+        ld a, (VDPScroll)
+        add a, l
+        cp 224
+        jr c, +     ; if a already less than 224, skip
+            sub 224 ; otherwise we subtract 224
+        +:
+        ld (VDPScroll), a
+
+        ; find the vertical offset of the last line of the tilemap in the viewport
+        add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
+        jr nc, +            ; if the add overflowed, it essentially did modulo 256
+            add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
+            jr ++           ; and skip the regular modulo check
+        + 
+        cp 224              
+        jr c, ++            ; if a already less than 224, skip
+            sub 224         ; otherwise we subtract 224
+        ++:
+
+        ; divide by 8 to get row number
+        RotateRightA 3
+
+        ; set the VDP row to be redrawn
+        ld (RedrawVDPRow), a
+
+        ; increase BGScroll by clamped value
+        add hl, de
+        ld (BGScroll), hl
+
+        ; find the vertical offset of the last line of the background that we want to display
+        ld bc, 191
+        add hl, bc
+
+        ; divide by 8 to get row number
+        RotateRightHL 3
+
+        ; set the background row to be redrawn
+        ld (RedrawBGRow), hl
+
+        ret
 
     ; Adjusts a value to be the max of the current value or SCROLL_INCREMENT
     ; Params: hl: value to adjust
