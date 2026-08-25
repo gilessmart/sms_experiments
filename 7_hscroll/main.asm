@@ -60,8 +60,7 @@
 .ends
 
 .define SCROLL_INCREMENT 4       ; max = 8
-; TODO - this is probably going to be 768 - 248?
-.define MAX_BG_SCROLL 1904 - 192 ; height of background - 192
+.define MAX_BG_SCROLL 768 - 248  ; height of background - width of viewport
 
 .section "main"
     Init:
@@ -92,13 +91,36 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
-        ; TODO - copy the correct tilemap entries to the VDP
         ; setup tilemap
-        ld hl, VDP_CMD_VRAM_WRITE << 8 | $3800
-        call VDP_SetAddress
-        ld hl, Tilemap
-        ld de, $600
-        call VDP_CopyData
+        ld a, 23
+        -:
+
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; set starting VRAM address
+        ld h, 0                                         ; load counter into hl
+        ld l, a
+        RotateLeftHL 6                                  ; multiply counter by 64
+        add hl, bc                                      ; add starting VRAM address
+        ex af, af'
+            call VDP_SetAddress                         ; write address to VDP
+        ex af, af'
+        
+        ld bc, Tilemap                                  ; set starting ROM address
+        ld h, 0                                         ; load counter into hl
+        ld l, a
+        RotateLeftHL 7                                  ; multiply by 128
+        ex hl, de                                       ; store in de
+        ld h, 0                                         ; load counter into hl again
+        ld l, a
+        RotateLeftHL 6                                  ; multiply by 64
+        add hl, de                                      ; add the * 128 value - should now have counter * 192
+        add hl, bc                                      ; add the starting ROM address
+        ld de, 62                                       ; write 62 bytes
+        ex af, af'
+            call VDP_CopyData                           ; write data to VDP
+        ex af, af'
+        
+        sub 1
+        jr nc, -
 
         ; initilise SAT
         ld bc, 0
