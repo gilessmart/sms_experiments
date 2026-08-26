@@ -93,32 +93,31 @@
 
         ; setup tilemap
         ld a, 23
+        
         -:
-
-        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; set starting VRAM address
         ld h, 0                                         ; load counter into hl
         ld l, a
         RotateLeftHL 6                                  ; multiply counter by 64
-        add hl, bc                                      ; add starting VRAM address
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; add starting VRAM address
+        add hl, bc                                      ; 
         ex af, af'
             call VDP_SetAddress                         ; write address to VDP
         ex af, af'
         
-        ld bc, Tilemap                                  ; set starting ROM address
         ld h, 0                                         ; load counter into hl
         ld l, a
-        RotateLeftHL 7                                  ; multiply by 128
-        ex hl, de                                       ; store in de
-        ld h, 0                                         ; load counter into hl again
-        ld l, a
         RotateLeftHL 6                                  ; multiply by 64
-        add hl, de                                      ; add the * 128 value - should now have counter * 192
-        add hl, bc                                      ; add the starting ROM address
+        ld b, h                                         ; copy into bc
+        ld c, l                                         ; bc is now a * 64
+        RotateLeftHL 1                                  ; multiply hl by 2 so it's now a * 128
+        add hl, bc                                      ; add a * 128 to a * 64 so a = a * 192
+        ld bc, Tilemap                                  ; add the starting ROM address
+        add hl, bc                                      ; 
         ld de, 62                                       ; write 62 bytes
         ex af, af'
             call VDP_CopyData                           ; write data to VDP
         ex af, af'
-        
+
         sub 1
         jr nc, -
 
