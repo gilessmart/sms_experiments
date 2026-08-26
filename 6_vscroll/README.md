@@ -1,4 +1,4 @@
-# Long Vertical Scrolling
+# Vertical Scrolling
 
 Scrolls a background up & down by changing the underlying tilemap.
 
