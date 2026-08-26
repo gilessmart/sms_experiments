@@ -26,7 +26,7 @@
 .include "vdp.asm"
 .include "sprites.asm"
 .include "controller.asm"
-.include "rotate.asm"
+.include "shiftutils.asm"
 
 .org $0000
 .section "startup" force
@@ -165,7 +165,7 @@
         ld (VDPScroll), a   ; store
 
         ; integer divide by 8 to get row number
-        RotateRightA 3
+        ShiftRightA 3
 
         ; set the VDP row to be redrawn
         ld (RedrawVDPRow), a
@@ -177,7 +177,7 @@
         ld (BGScroll), hl
 
         ; integer divide by 8 to get row number
-        RotateRightHL 3
+        ShiftRightHL 3
 
         ; set the background row to be redrawn
         ld (RedrawBGRow), hl
@@ -227,7 +227,7 @@
         ++:
 
         ; divide by 8 to get row number
-        RotateRightA 3
+        ShiftRightA 3
 
         ; set the VDP row to be redrawn
         ld (RedrawVDPRow), a
@@ -241,7 +241,7 @@
         add hl, bc
 
         ; divide by 8 to get row number
-        RotateRightHL 3
+        ShiftRightHL 3
 
         ; set the background row to be redrawn
         ld (RedrawBGRow), hl
@@ -275,7 +275,7 @@
         ld l, a
         
         ; multiply hl by 64 (number of bytes per row in vram)
-        RotateLeftHL 6
+        ShiftLeftHL 6
 
         ; add the base address of the VDP tilemap
         ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
@@ -286,7 +286,7 @@
         ld hl, (RedrawBGRow)
 
         ; multiply by 64 (number of bytes per row in tilemap data)
-        RotateLeftHL 6
+        ShiftLeftHL 6
 
         ; add the start address
         ld bc, Tilemap

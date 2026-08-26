@@ -1,23 +1,23 @@
-.macro RotateRightA
+.macro ShiftRightA
     .repeat \1
         srl a
     .endr
 .endm
 
-.macro RotateRightHL
+.macro ShiftRightHL
     .repeat \1
         srl h
         rr l
     .endr
 .endm
 
-.macro RotateLeftA
+.macro ShiftLeftA
     .repeat \1
         sla a
     .endr
 .endm
 
-.macro RotateLeftHL
+.macro ShiftLeftHL
     .repeat \1
         sla l
         rl h
