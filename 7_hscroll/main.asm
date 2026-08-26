@@ -97,8 +97,8 @@
         -:
         ld h, 0                                         ; load counter into hl
         ld l, a
-        ShiftLeftHL 6                                   ; multiply counter by 64
-        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; add starting VRAM address
+        ShiftLeftHL 6                                   ; multiply counter by 64 (number of bytes in a row in the tilemap)
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; add starting VRAM address (offset by 2 bytes because the leftmost tile isn't displayed)
         add hl, bc                                      ; 
         ex af, af'
             call VDP_SetAddress                         ; write address to VDP
@@ -110,10 +110,10 @@
         ld b, h                                         ; copy into bc
         ld c, l                                         ; bc is now a * 64
         ShiftLeftHL 1                                   ; multiply hl by 2 so it's now a * 128
-        add hl, bc                                      ; add a * 128 to a * 64 so a = a * 192
+        add hl, bc                                      ; add a * 128 to a * 64 so a = a * 192 (number of bytes in a row in the background)
         ld bc, Tilemap                                  ; add the starting ROM address
         add hl, bc                                      ; 
-        ld de, 62                                       ; write 62 bytes
+        ld de, 62                                       ; write 62 bytes (32 tiles less in a row but the leftmost isn't displayed)
         ex af, af'
             call VDP_CopyData                           ; write data to VDP
         ex af, af'
