@@ -44,7 +44,10 @@
 
     ; update VDP with new scroll value
     ld a, (VDPScroll)
-    ld l, a
+    ld l, a             ; l = VDPScroll
+    ld a, 0
+    sub l               ; a = 256 - VDPScroll
+    ld l, a             ; l = 256 - VDPScroll
     VDP_SetRegister 8
 
     call RedrawCol
@@ -59,8 +62,8 @@
     retn
 .ends
 
-.define SCROLL_INCREMENT 4       ; max = 8
-.define MAX_BG_SCROLL 768 - 248  ; height of background - width of viewport
+.define SCROLL_INCREMENT 4          ; max = 8
+.define MAX_BG_SCROLL 768 - 256     ; width of background - width of viewport
 
 .section "main"
     Init:
@@ -92,30 +95,33 @@
         call VDP_CopyData
 
         ; setup tilemap
-        ld a, 23
+        ld a, 23    ; use a as row index        
         
         -:
-        ld h, 0                                         ; load counter into hl
+        ; calculate & set VRAM offset address:
+        ; row index * 32 (cols per row) * 2 (bytes per tile)
+        ld h, 0
         ld l, a
-        ShiftLeftHL 6                                   ; multiply counter by 64 (number of bytes in a row in the tilemap)
-        ld bc, VDP_CMD_VRAM_WRITE << 8 | ($3800 + 2)    ; add starting VRAM address (offset by 2 bytes because the leftmost tile isn't displayed)
-        add hl, bc                                      ; 
+        ShiftLeftHL 6           ; hl = row index * 64
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
+        add hl, bc              ; add VRAM write bits / start address
+
         ex af, af'
-            call VDP_SetAddress                         ; write address to VDP
+            call VDP_SetAddress
         ex af, af'
         
-        ld h, 0                                         ; load counter into hl
+        ld h, 0
         ld l, a
-        ShiftLeftHL 6                                   ; multiply by 64
-        ld b, h                                         ; copy into bc
-        ld c, l                                         ; bc is now a * 64
-        ShiftLeftHL 1                                   ; multiply hl by 2 so it's now a * 128
-        add hl, bc                                      ; add a * 128 to a * 64 so a = a * 192 (number of bytes in a row in the background)
-        ld bc, Tilemap                                  ; add the starting ROM address
-        add hl, bc                                      ; 
-        ld de, 62                                       ; write 62 bytes (32 tiles less in a row but the leftmost isn't displayed)
+        ShiftLeftHL 6           ; hl = row index * 64
+        ld b, h
+        ld c, l                 ; bc = row index * 64
+        ShiftLeftHL 1           ; hl = row index * 128
+        add hl, bc              ; hl = row index * 192 (number of bytes per row in the background)
+        ld bc, Tilemap
+        add hl, bc              ; add the start address
+        ld de, 64               ; write 64 bytes (32 tiles per row * 2 bytes per tile)
         ex af, af'
-            call VDP_CopyData                           ; write data to VDP
+            call VDP_CopyData
         ex af, af'
 
         sub 1
@@ -230,27 +236,13 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; TODO - review the modulos - it'll probably need to change from 224 to 248?
-
         ; increase VDPScroll by clamped value
         ld a, (VDPScroll)
         add a, l
-        cp 224
-        jr c, +     ; if a already less than 224, skip
-            sub 224 ; otherwise we subtract 224
-        +:
         ld (VDPScroll), a
 
-        ; find the vertical offset of the last line of the tilemap in the viewport
-        add a, 191          ; after this, a will be from 191 to 414 - so often overflowing the byte
-        jr nc, +            ; if the add overflowed, it essentially did modulo 256
-            add a, 32       ; we can add 32 to what we have now to get the right modulo 224 number
-            jr ++           ; and skip the regular modulo check
-        + 
-        cp 224              
-        jr c, ++            ; if a already less than 224, skip
-            sub 224         ; otherwise we subtract 224
-        ++:
+        ; find the horizontal offset of the last vertical line of pixels on the viewport
+        add a, 255
 
         ; divide by 8 to get row number
         ShiftRightA 3
@@ -259,12 +251,12 @@
         ld (RedrawVDPCol), a
 
         ; increase BGScroll by clamped value
-        add hl, de
-        ld (BGScroll), hl
+        ex hl, de           ; make hl the BGScroll value and de the clamped scroll distance
+        add hl, de          ; subtract scroll distance from BGScroll value
+        ld (BGScroll), hl   ; store new BGScroll value
 
-        ; TODO - update to width of the viewport?
         ; find the vertical offset of the last line of the background that we want to display
-        ld bc, 191
+        ld bc, 255
         add hl, bc
 
         ; divide by 8 to get row number
@@ -294,36 +286,59 @@
 .ends
 
 .section "redraw_row"
-    ; TODO - this has got to change to actually draw a column instead of a row..
     RedrawCol:
-        ; ld a, (RedrawVDPCol)
+        ld a, 23    ; use a as row index
         
-        ; ; load a into hl
-        ; ld h, 0
-        ; ld l, a
+        -:
+        ; calculate & set VRAM offset address:
+        ; row index * 32 * 2 + col number * 2
+        ld h, 0
+        ld l, a
+        ShiftLeftHL 6           ; hl = row index * 64
+        ex hl, de               ; de = row index * 64
         
-        ; ; multiply hl by 64 (number of bytes per row in vram)
-        ; ShiftLeftHL 6
+        ex af, af'
+            ld a, (RedrawVDPCol)
+            ld h, 0
+            ld l, a
+            ShiftLeftHL 1       ; hl = col index * 2
 
-        ; ; add the base address of the VDP tilemap
-        ; ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
-        ; add hl, bc
+            or a
+            adc hl, de          ; hl = row index * 64 + col index  * 2
 
-        ; call VDP_SetAddress
+            ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
+            add hl, bc          ; add the vram write bits / start address
 
-        ; ld hl, (RedrawBGCol)
+            call VDP_SetAddress
+        ex af, af'
 
-        ; ; multiply by 64 (number of bytes per row in tilemap data)
-        ; ShiftLeftHL 6
+        ; calculate background offset address
+        ; row row index * 192 + bg col index * 2
+        ld h, 0
+        ld l, a
+        ShiftLeftHL 6           ; hl = row index * 64
+        ld b, h
+        ld c, l                 ; bc = row index * 64
+        ShiftLeftHL 1           ; hl = row index * 128
+        add hl, bc              ; hl = row index * 192
+        ex hl, de               ; de = row index * 192
 
-        ; ; add the start address
-        ; ld bc, Tilemap
-        ; add hl, bc
-
-        ; ; write one line (64 bytes) of data
-        ; ld de, $40
+        ld hl, (RedrawBGCol)
+        ShiftLeftHL 1           ; hl = bg col index * 2
         
-        ; call VDP_CopyData
+        add hl, de              ; hl = row index * 192 + bg col index * 2
+
+        ; add the start address
+        ld bc, Tilemap
+        add hl, bc
+
+        ld de, 2
+        ex af, af'
+            call VDP_CopyData
+        ex af, af'
+
+        sub 1
+        jr nc, -
         
         ret
 .ends
