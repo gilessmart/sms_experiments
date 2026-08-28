@@ -303,8 +303,7 @@
             ld l, a
             ShiftLeftHL 1       ; hl = col index * 2
 
-            or a
-            adc hl, de          ; hl = row index * 64 + col index  * 2
+            add hl, de          ; hl = row index * 64 + col index  * 2
 
             ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
             add hl, bc          ; add the vram write bits / start address
