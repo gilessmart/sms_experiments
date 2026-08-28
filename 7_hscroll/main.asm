@@ -292,9 +292,9 @@
         -:
         ; calculate & set VRAM offset address:
         ; row index * 32 * 2 + col number * 2
-        ld h, 0
-        ld l, a
-        ShiftLeftHL 6           ; hl = row index * 64
+        ld h, a
+        ld l, 0
+        ShiftRightHL 2          ; hl = row index * 64
         ex hl, de               ; de = row index * 64
         
         ex af, af'
@@ -318,12 +318,12 @@
 
         ; calculate background offset address
         ; row row index * 192 + bg col index * 2
-        ld h, 0
-        ld l, a
-        ShiftLeftHL 6           ; hl = row index * 64
+        ld h, a
+        ld l, 0
+        ShiftRightHL 1          ; hl = row index * 128
         ld b, h
-        ld c, l                 ; bc = row index * 64
-        ShiftLeftHL 1           ; hl = row index * 128
+        ld c, l                 ; bc = row index * 128
+        ShiftRightHL 1          ; hl = row index * 64
         add hl, bc              ; hl = row index * 192
         ex hl, de               ; de = row index * 192
 
