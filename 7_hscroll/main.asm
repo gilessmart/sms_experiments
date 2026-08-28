@@ -309,7 +309,11 @@
             ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
             add hl, bc          ; add the vram write bits / start address
 
-            call VDP_SetAddress
+            ; write to VDP
+            ld a, l
+            out (VDP_CTRL_PORT), a
+            ld a, h
+            out (VDP_CTRL_PORT), a
         ex af, af'
 
         ; calculate background offset address
@@ -332,10 +336,10 @@
         ld bc, Tilemap
         add hl, bc
 
-        ld de, 2
-        ex af, af'
-            call VDP_CopyData
-        ex af, af'
+        ; write to VDP
+        ld c, VDP_DATA_PORT
+        ld b, 2
+        otir
 
         sub 1
         jr nc, -
