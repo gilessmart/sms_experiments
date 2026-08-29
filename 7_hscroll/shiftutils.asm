@@ -13,13 +13,12 @@
 
 .macro ShiftLeftA
     .repeat \1
-        sla a
+        add a, a
     .endr
 .endm
 
 .macro ShiftLeftHL
     .repeat \1
-        sla l
-        rl h
+        add hl, hl
     .endr
 .endm
