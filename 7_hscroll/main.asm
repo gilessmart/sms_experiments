@@ -300,7 +300,7 @@
         ShiftLeftHL 1           ; hl = bg col index * 2
         ld (BGColOffset), hl    ; BGColOffset = col index * 2
         
-        ld a, 23    ; use a as row index
+        ld a, 23                ; use a as row index
         
         -:
         ; calculate & set VRAM offset address:
@@ -327,13 +327,11 @@
 
         ; calculate background offset address
         ; row row index * 192 + bg col index * 2
-        ld h, a
-        ld l, 0
-        ShiftRightHL 1              ; hl = row index * 128
-        ld b, h
-        ld c, l                     ; bc = row index * 128
-        ShiftRightHL 1              ; hl = row index * 64
-        add hl, bc                  ; hl = row index * 192
+        ex hl, de                   ; hl = row index * 64
+        ld d, h
+        ld e, l                     ; de = row index * 64
+        ShiftLeftHL 1               ; hl = row index * 128
+        add hl, de                  ; hl = row index * 192
         ex hl, de                   ; de = row index * 192
 
         ld hl, (BGColOffset)        ; hl = BGColOffset
