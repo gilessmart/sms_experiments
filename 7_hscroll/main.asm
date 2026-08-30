@@ -1,17 +1,16 @@
 .memorymap
     defaultslot 0
     slot 0 $0000 $4000  ; 16K ROM
-    slot 1 $4000 $4000  ; 16K ROM
-    slot 2 $c000 $2000  ; 8K RAM
+    slot 1 $c000 $2000  ; 8K RAM
 .endme
 
 .rombankmap
-    bankstotal 2
+    bankstotal 1
     banksize $4000
-    banks 2
+    banks 1
 .endro
 
-.ramsection "main_state" slot 2
+.ramsection "main_state" slot 1
     BGScroll: dw
     RedrawBGCol: dw
     VDPScroll: db
@@ -317,7 +316,7 @@
         ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
         add hl, bc                  ; add the vram write bits / start address
 
-            ; write to VDP
+        ; write to VDP
         ld c, VDP_CTRL_PORT
         out (c), l
         out (c), h
@@ -353,13 +352,5 @@
 .section "vdp_data"
     .include "data/palette.asm"
     .include "data/tile_patterns.asm"
-.ends
-
-; TODO - tilemap no longer needs to be in a separate bank
-
-.bank 1
-.slot 1
-
-.section "tilemap"
     .include "data/tilemap.asm"
 .ends

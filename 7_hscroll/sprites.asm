@@ -1,4 +1,4 @@
-.ramsection "shadow_sat" slot 2
+.ramsection "shadow_sat" slot 1
     ShadowSAT: dsb 256
 .ends
 
