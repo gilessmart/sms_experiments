@@ -293,14 +293,14 @@
         ld a, (RedrawVDPCol)
         ld h, 0
         ld l, a
-        ShiftLeftHL 1           ; hl = col index * 2
-        ld (VDPColOffset), hl   ; VDPColOffset = col index * 2
+        ShiftLeftHL 1               ; hl = col index * 2
+        ld (VDPColOffset), hl       ; VDPColOffset = col index * 2
 
         ld hl, (RedrawBGCol)
-        ShiftLeftHL 1           ; hl = bg col index * 2
-        ld (BGColOffset), hl    ; BGColOffset = col index * 2
+        ShiftLeftHL 1               ; hl = bg col index * 2
+        ld (BGColOffset), hl        ; BGColOffset = col index * 2
         
-        ld a, 23                ; use a as row index
+        ld a, 23                    ; use a as row index
         
         -:
         ; calculate & set VRAM offset address:
@@ -309,15 +309,15 @@
         ld l, 0
         ShiftRightHL 2              ; hl = row index * 64
         ex hl, de                   ; de = row index * 64
-        
+    
+        ld hl, (VDPColOffset)       ; hl = col offset
+
+        add hl, de                  ; hl = row index * 64 + col offset
+
+        ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
+        add hl, bc                  ; add the vram write bits / start address
+
         ex af, af'
-            ld hl, (VDPColOffset)   ; hl = col offset
-
-            add hl, de              ; hl = row index * 64 + col offset
-
-            ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
-            add hl, bc              ; add the vram write bits / start address
-
             ; write to VDP
             ld a, l
             out (VDP_CTRL_PORT), a
