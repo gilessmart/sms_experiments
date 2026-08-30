@@ -317,13 +317,10 @@
         ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
         add hl, bc                  ; add the vram write bits / start address
 
-        ex af, af'
             ; write to VDP
-            ld a, l
-            out (VDP_CTRL_PORT), a
-            ld a, h
-            out (VDP_CTRL_PORT), a
-        ex af, af'
+        ld c, VDP_CTRL_PORT
+        out (c), l
+        out (c), h
 
         ; calculate background offset address
         ; row row index * 192 + bg col index * 2
