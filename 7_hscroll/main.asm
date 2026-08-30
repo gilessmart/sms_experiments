@@ -203,7 +203,7 @@
         ld (RedrawVDPCol), a
 
         ; reduce BGScroll by clamped value
-        ex hl, de
+        ex de, hl
         or a        ; clear carry flag
         sbc hl, de
         ld (BGScroll), hl
@@ -223,7 +223,7 @@
         ld hl, (BGScroll)
 
         ; swap it into de
-        ex hl, de
+        ex de, hl
 
         ; find max available scroll distance
         ld hl, MAX_BG_SCROLL
@@ -253,7 +253,7 @@
         ld (RedrawVDPCol), a
 
         ; increase BGScroll by clamped value
-        ex hl, de           ; make hl the BGScroll value and de the clamped scroll distance
+        ex de, hl           ; make hl the BGScroll value and de the clamped scroll distance
         add hl, de          ; subtract scroll distance from BGScroll value
         ld (BGScroll), hl   ; store new BGScroll value
 
@@ -308,7 +308,7 @@
         ld h, a
         ld l, 0
         ShiftRightHL 2              ; hl = row index * 64
-        ex hl, de                   ; de = row index * 64
+        ex de, hl                   ; de = row index * 64
     
         ld hl, (VDPColOffset)       ; hl = col offset
 
@@ -327,12 +327,12 @@
 
         ; calculate background offset address
         ; row row index * 192 + bg col index * 2
-        ex hl, de                   ; hl = row index * 64
+        ex de, hl                   ; hl = row index * 64
         ld d, h
         ld e, l                     ; de = row index * 64
         ShiftLeftHL 1               ; hl = row index * 128
         add hl, de                  ; hl = row index * 192
-        ex hl, de                   ; de = row index * 192
+        ex de, hl                   ; de = row index * 192
 
         ld hl, (BGColOffset)        ; hl = BGColOffset
 
