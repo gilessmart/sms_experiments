@@ -63,8 +63,8 @@
     retn
 .ends
 
-.define SCROLL_INCREMENT 5          ; max = 8
-.define MAX_BG_SCROLL 768 - 256     ; width of background - width of viewport
+.define SCROLL_INCREMENT 5              ; max = 8
+.define COLS 97                         ; cols in background
 
 .section "main"
     Init:
@@ -239,7 +239,7 @@
         ex de, hl
 
         ; find max available scroll distance
-        ld hl, MAX_BG_SCROLL
+        ld hl, (COLS - 32) * 8
         or a        ; clear carry flag
         sbc hl, de
 
@@ -366,12 +366,12 @@
 .section "row_offset_tables"
     VRAMOffsetTable:
         .repeat 24 index i
-            .dw (VDP_CMD_VRAM_WRITE << 8 | $3800) + i*64    ; VDP write bits + row offset
+            .dw (VDP_CMD_VRAM_WRITE << 8 | $3800) + i*32*2  ; VDP write bits + row offset
         .endr
 
     BGRowOffsetTable:
         .repeat 24 index i
-            .dw Tilemap + i*192                             ; Tilemap address + row offset
+            .dw Tilemap + i*COLS*2                          ; Tilemap address + row offset
         .endr
 .ends
 
