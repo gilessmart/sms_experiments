@@ -63,13 +63,13 @@
     retn
 .ends
 
-.define SCROLL_INCREMENT 4          ; max = 8
+.define SCROLL_INCREMENT 5          ; max = 8
 .define MAX_BG_SCROLL 768 - 256     ; width of background - width of viewport
 
 .section "main"
     Init:
         ; initialise VDP registers
-        VDP_SetRegister 0, %00100100 ; mode 4
+        VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
         VDP_SetRegister 1, %10100000 ; 16K VRAM, frame interrupts
         VDP_SetRegister 2, $ff       ; name table base address $3800
         VDP_SetRegister 3, $ff       ; color table base address (mostly redundant in mode 4)
@@ -174,6 +174,8 @@
         ; load current BG scroll value from RAM
         ld hl, (BGScroll)
 
+        ; the current BGScroll value is also the max available scroll distance
+
         ; if distance is 0, nothing to do
         ld a, h
         or l
@@ -186,26 +188,29 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; TODO - review this modulo - it'll probably need to change from 224 to 248?
         ; reduce VDPScroll by clamped value
-        ld a, (VDPScroll)   ; load
-        sub a, l            ; reduce
-        jr nc, ++           ; if is now less than 0
-            add 224         ; add 224
-        ++:
-        ld (VDPScroll), a   ; store
+        ld a, (VDPScroll)
+        sub a, l
+        ld (VDPScroll), a
 
-        ; integer divide by 8 to get row number
+        ; find the horizontal offset of the first vertical line of pixels on the viewport
+        add a, 8
+
+        ; (integer) divide by 8 to get column number
         ShiftRightA 3
 
-        ; set the VDP row to be redrawn
+        ; set the VDP column to be redrawn
         ld (RedrawVDPCol), a
 
         ; reduce BGScroll by clamped value
-        ex de, hl
-        or a        ; clear carry flag
-        sbc hl, de
-        ld (BGScroll), hl
+        ex de, hl                   ; hl = BGScroll
+        or a                        ; clear carry flag
+        sbc hl, de                  ; hl = BGScroll - scroll distance
+        ld (BGScroll), hl           ; BGScroll = BGScroll - scroll distance
+
+        ; find the vertical offset of the first vertical line of the background that we want to display
+        ld bc, 8
+        add hl, bc
 
         ; integer divide by 8 to get row number
         ShiftRightHL 3
@@ -245,10 +250,10 @@
         ; find the horizontal offset of the last vertical line of pixels on the viewport
         add a, 255
 
-        ; divide by 8 to get row number
+        ; (integer) divide by 8 to get column number
         ShiftRightA 3
 
-        ; set the VDP row to be redrawn
+        ; set the VDP column to be redrawn
         ld (RedrawVDPCol), a
 
         ; increase BGScroll by clamped value
@@ -256,7 +261,7 @@
         add hl, de          ; subtract scroll distance from BGScroll value
         ld (BGScroll), hl   ; store new BGScroll value
 
-        ; find the vertical offset of the last line of the background that we want to display
+        ; find the horizontal offset of the first vertical line of the background that we want to display
         ld bc, 255
         add hl, bc
 
