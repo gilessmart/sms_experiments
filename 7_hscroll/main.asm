@@ -96,36 +96,45 @@
         call VDP_CopyData
 
         ; setup tilemap
-        ld a, 23    ; use a as row index        
+        ld a, 46                    ; a = row index * 2
         
         -:
-        ; calculate & set VRAM offset address:
-        ; row index * 32 (cols per row) * 2 (bytes per tile)
+        ; set VRAM write command / address
         ld h, 0
-        ld l, a
-        ShiftLeftHL 6           ; hl = row index * 64
-        ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
-        add hl, bc              ; add VRAM write bits / start address
+        ld l, a                     ; hl = row index * 2
 
-        ex af, af'
-            call VDP_SetAddress
-        ex af, af'
+        ld bc, VRAMOffsetTable
+        add hl, bc                  ; hl = VRAMOffsetTable + row index * 2
+
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                  ; de = VDP write bits + row offset
+
+        ex de, hl                   ; hl = VDP write bits + row offset
         
-        ld h, 0
-        ld l, a
-        ShiftLeftHL 6           ; hl = row index * 64
-        ld b, h
-        ld c, l                 ; bc = row index * 64
-        ShiftLeftHL 1           ; hl = row index * 128
-        add hl, bc              ; hl = row index * 192 (number of bytes per row in the background)
-        ld bc, Tilemap
-        add hl, bc              ; add the start address
-        ld de, 64               ; write 64 bytes (32 tiles per row * 2 bytes per tile)
-        ex af, af'
-            call VDP_CopyData
-        ex af, af'
+        ld c, VDP_CTRL_PORT
+        out (c), l
+        out (c), h                  ; write to VDP
 
-        sub 1
+        ; set VRAM data
+        ld h, 0
+        ld l, a                     ; hl = row index * 2
+
+        ld bc, BGRowOffsetTable
+        add hl, bc                  ; hl = BGRowOffsetTable + row index * 2
+
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                  ; de = Tilemap + row offset
+
+        ex de, hl                   ; hl = Tilemap + row offset
+
+        ; write to VDP
+        ld c, VDP_DATA_PORT
+        ld b, 64
+        otir
+
+        sub 2
         jr nc, -
 
         ; initilise SAT
