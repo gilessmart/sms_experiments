@@ -27,7 +27,7 @@
     jp main
 .ends
 
-.sdsctag 0.1, "Sprite Demo", "SMS programming experiment", "Giles Smart"
+.sdsctag 0.1, "Static Sprites Demo", "SMS programming experiment", "Giles Smart"
 
 .org $0038
 .section "interrupt_handler" force

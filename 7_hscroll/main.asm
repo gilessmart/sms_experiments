@@ -22,7 +22,7 @@
 .bank 0
 .slot 0
 
-.sdsctag 0.1, "Long v-scrolling demo", "SMS programming experiment", "Giles Smart"
+.sdsctag 0.1, "Horizontal Scrolling Demo", "SMS programming experiment", "Giles Smart"
 
 .include "vdp.asm"
 .include "sprites.asm"
