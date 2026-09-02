@@ -14,7 +14,7 @@
     BGScroll: dw
     RedrawBGCol: dw
     VDPScroll: db
-    RedrawVDPCol: db
+    RedrawVDPCol: dw
     VDPColOffset: dw
     BGColOffset: dw
 .ends
@@ -136,8 +136,8 @@
         ; initialise scroll offsets / redraw columns
         ld a, 0
         ld (VDPScroll), a
-        ld (RedrawVDPCol), a
         ld bc, 0
+        ld (RedrawVDPCol), bc
         ld (BGScroll), bc
         ld (RedrawBGCol), bc
 
@@ -289,21 +289,19 @@
 .section "redraw_row"
     RedrawCol:
         ; calculate & store col offset
-        ld a, (RedrawVDPCol)
-        ld h, 0
-        ld l, a
-        ShiftLeftHL 1               ; hl = col index * 2
+        ld hl, (RedrawVDPCol)
+        add hl, hl                  ; hl = col index * 2
         ld (VDPColOffset), hl       ; VDPColOffset = col index * 2
 
         ld hl, (RedrawBGCol)
-        ShiftLeftHL 1               ; hl = bg col index * 2
+        add hl, hl                  ; hl = bg col index * 2
         ld (BGColOffset), hl        ; BGColOffset = col index * 2
         
         ld a, 46                    ; a = row index * 2
         
         -:
         ;
-        ; look up VRAM write command / address
+        ; set VRAM write command / address
         ;
         ld h, 0
         ld l, a                     ; hl = row index * 2
@@ -325,7 +323,7 @@
         out (c), h
 
         ;
-        ; look up background offset address
+        ; set VRAM data
         ;
         ld h, 0
         ld l, a                     ; hl = row index * 2
