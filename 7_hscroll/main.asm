@@ -299,54 +299,68 @@
         ShiftLeftHL 1               ; hl = bg col index * 2
         ld (BGColOffset), hl        ; BGColOffset = col index * 2
         
-        ld a, 23                    ; use a as row index
+        ld a, 46                    ; a = row index * 2
         
         -:
-        ; calculate & set VRAM offset address:
-        ; row index * 32 * 2 + col number * 2
-        ld h, a
-        ld l, 0
-        ShiftRightHL 2              ; hl = row index * 64
-        ex de, hl                   ; de = row index * 64
+        ;
+        ; look up VRAM write command / address
+        ;
+        ld h, 0
+        ld l, a                     ; hl = row index * 2
+
+        ld bc, VRAMOffsetTable
+        add hl, bc                  ; hl = VRAMOffsetTable + row index * 2
+
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                  ; de = VDP write bits + row offset
     
         ld hl, (VDPColOffset)       ; hl = col offset
 
-        add hl, de                  ; hl = row index * 64 + col offset
-
-        ld bc, VDP_CMD_VRAM_WRITE << 8 | $3800
-        add hl, bc                  ; add the vram write bits / start address
+        add hl, de                  ; hl = VDP write bits + row offset + col offset
 
         ; write to VDP
         ld c, VDP_CTRL_PORT
         out (c), l
         out (c), h
 
-        ; calculate background offset address
-        ; row row index * 192 + bg col index * 2
-        ex de, hl                   ; hl = row index * 64
-        ld d, h
-        ld e, l                     ; de = row index * 64
-        ShiftLeftHL 1               ; hl = row index * 128
-        add hl, de                  ; hl = row index * 192
-        ex de, hl                   ; de = row index * 192
+        ;
+        ; look up background offset address
+        ;
+        ld h, 0
+        ld l, a                     ; hl = row index * 2
+
+        ld bc, BGRowOffsetTable
+        add hl, bc                  ; hl = BGRowOffsetTable + row index * 2
+
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                  ; de = Tilemap + row offset
 
         ld hl, (BGColOffset)        ; hl = BGColOffset
-
-        add hl, de                  ; hl = row index * 192 + BGColOffset
-
-        ; add the start address
-        ld bc, Tilemap
-        add hl, bc
+        add hl, de                  ; hl = Tilemap + row offset + BGColOffset
 
         ; write to VDP
         ld c, VDP_DATA_PORT
         ld b, 2
         otir
 
-        sub 1
+        sub 2
         jr nc, -
         
         ret
+.ends
+
+.section "row_offset_tables"
+    VRAMOffsetTable:
+        .repeat 24 index i
+            .dw (VDP_CMD_VRAM_WRITE << 8 | $3800) + i*64    ; VDP write bits + row offset
+        .endr
+
+    BGRowOffsetTable:
+        .repeat 24 index i
+            .dw Tilemap + i*192                             ; Tilemap address + row offset
+        .endr
 .ends
 
 .section "vdp_data"
