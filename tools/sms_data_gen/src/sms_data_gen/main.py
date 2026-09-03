@@ -1,7 +1,7 @@
 from PIL import Image
 
 from sms_data_gen.cli import parse_args
-from sms_data_gen.colors import RGBA, is_opaque, is_transparent, is_sms_color
+from sms_data_gen.colors import RGBA, is_opaque, is_transparent, is_sms_color, parse_hex_colors
 from sms_data_gen.patterns import PatternList, write_bg_tiles_img, write_patterns_asm
 from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, get_colors_as_rgba, remove_trailing_transparent_imgs
 from sms_data_gen.palettes import Palette, write_palettes
@@ -15,6 +15,12 @@ def main():
     tilemap = None
     sprite_palette = Palette()
     sprite_patterns = PatternList(192)
+
+    # pre-populate the sprite palette
+    if args.sprite_pallette is not None:
+        colors = parse_hex_colors(args.sprite_pallette)
+        validate_sprite_palette_colors(colors)
+        sprite_palette.add_colors(colors)
     
     # ingest the background tiles file
     if args.bg_tiles_file_path:
@@ -86,12 +92,18 @@ def main():
         data = sprite_patterns.get_bytes(get_sprite_palette_idx)
         write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)
 
-def validate_bg_tile_colors(colors: list[RGBA]) -> None:  
+def validate_sprite_palette_colors(colors: list[RGBA]) -> None:
+    for color in colors:
+        is_valid = is_opaque(color) and is_sms_color(color)
+        if not is_valid:
+            raise Exception(f"{color} is not a valid color for the sprite palette")
+
+def validate_bg_tile_colors(colors: list[RGBA]) -> None:
     for color in colors:
         is_valid = is_opaque(color) and is_sms_color(color)
         if not is_valid:
             raise Exception(f"{color} is not a valid color for a background tile")
-        
+
 def validate_sprite_colors(colors: list[RGBA]) -> None:
     for color in colors:
         is_valid = is_transparent(color) or (is_opaque(color) and is_sms_color(color))

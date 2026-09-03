@@ -30,10 +30,11 @@ pipx install .
 smsdatagen <arguments>
 
 arguments:
-  -b, --bg        background file path
-  -t, --bg-tiles  background tiles file path
-  -s, --sprites   sprites file path
-  -o, --out       output directory path
+  -p, --sprite-palette  initial sprite palette colors
+  -b, --bg              background file path
+  -t, --bg-tiles        background tiles file path
+  -s, --sprites         sprites file path
+  -o, --out             output directory path
 ```
 
 At least one of the **background file path**, **background tiles file path** and **sprites file path** must be supplied.
@@ -43,7 +44,8 @@ The **background file path**, **background tiles file path** and **sprites file 
 ### Example
 
 ```
-smsdatagen -b test_images/background.png \
+smsdatagen -p "#0000ff"
+           -b test_images/background.png \
            -t test_images/background-tiles.png \
            -s test_images/sprites.png -o output
 ```
@@ -69,14 +71,20 @@ The tool takes as input (at least one of) the following image files:
   Unused space can be left transparent.  
   Transparent (but not translucent) pixels are allowed and a maximum of 15 other valid SMS colors may be used.
 
+See [test images](./test_images) for examples.
+
+Sprite palette colors may be pre-populated (e.g. to allow an overscan/backdrop color to be setup).
+
+* **Sprite palette** - colors to pre-populate the sprite palette with.
+
+  Accepts a comma separated list of hex color codes. Colors must be valid SMS colors.
+
 Combined rules for the **background file** / **background tiles file**:
 
 * A maximum of 16 colors may be used across the two images.  
   All must be valid SMS colors. No transparency is allowed, except for any unused space at the end of the **background tiles file**.
 
 * A maximum of 256 distinct tiles may be used across the two images, consisting of all tiles from the **background tiles file** plus any tiles from the **background file** that don't match, and are not reflections of, other tiles already in the set.
-
-See [test images](./test_images) for examples.
 
 The following files are written to the output directory:
 
