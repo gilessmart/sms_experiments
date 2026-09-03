@@ -17,5 +17,5 @@ make
 Use [SMS Data Gen](../tools/sms_data_gen/):
 
 ```sh
-smsdatagen -b images/background.png -o data
+smsdatagen -p "#0000ff" -b images/background.png -o data
 ```
