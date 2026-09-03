@@ -12,8 +12,8 @@
 
 .ramsection "main_state" slot 1
     BGScroll: dw
-    RedrawBGCol: dw
     VDPScroll: db
+    RedrawBGCol: dw
     RedrawVDPCol: dw
     VDPColOffset: dw
     BGColOffset: dw
