@@ -12,8 +12,9 @@
 .endro
 
 .ramsection "main_state" slot 2
-    BGScroll: dw
-    VDPScroll: db
+    BGScrollX: dw
+    VDPScrollX: db
+    VDPScrollY: db
     RedrawBGCol: dw
     RedrawVDPCol: dw
     VDPColOffset: dw
@@ -44,13 +45,18 @@
 .section "interrupt_handler" force
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
 
-    ; update VDP with new scroll value
-    ld a, (VDPScroll)
-    ld l, a             ; l = VDPScroll
+    ; copy (inverted) X scroll value to VDP
+    ld a, (VDPScrollX)
+    ld l, a             ; l = VDPScrollX
     ld a, 0
-    sub l               ; a = 256 - VDPScroll
-    ld l, a             ; l = 256 - VDPScroll
+    sub l               ; a = 256 - VDPScrollX
+    ld l, a             ; l = 256 - VDPScrollX
     VDP_SetRegister 8
+
+    ; copy Y scroll value to VDP
+    ld a, (VDPScrollY)
+    ld l, a
+    VDP_SetRegister 9
 
     call RedrawCol
 
@@ -64,8 +70,9 @@
     retn
 .ends
 
-.define SCROLL_INCREMENT 5              ; max = 8
-.define COLS 194                        ; cols in background
+.define SCROLL_INCREMENT 5  ; max = 8
+.define BG_ROWS 42          ; cols in background
+.define BG_COLS 194         ; cols in background
 
 .section "main"
     Init:
@@ -97,7 +104,7 @@
         call VDP_CopyData
 
         ; setup tilemap
-        ld a, 46                        ; a = row index * 2
+        ld a, 27*2                    ; a = row index * 2
         -:
             ; set VRAM write command / address
 
@@ -142,10 +149,11 @@
 
         ; initialise scroll offsets / redraw columns
         ld a, 0
-        ld (VDPScroll), a
+        ld (VDPScrollX), a
+        ld (VDPScrollY), a
         ld bc, 0
         ld (RedrawVDPCol), bc
-        ld (BGScroll), bc
+        ld (BGScrollX), bc
         ld (RedrawBGCol), bc
 
         ; turn on display
@@ -160,47 +168,88 @@
         in a, CTLR_PORT_AB
 
         ; scroll up
-        bit CTLR_PORT_AB_A_LEFT, a
+        bit CTLR_PORT_AB_A_UP, a
         jr nz, +
-            call ScrollLeft
-            jr MainLoop
+            ex af, af'
+                call ScrollUp
+            ex af, af'
         +:
 
         ; scroll down
+        bit CTLR_PORT_AB_A_DOWN, a
+        jr nz, +
+            ex af, af'
+                call ScrollDown
+            ex af, af'
+        +:
+
+        ; scroll left
+        bit CTLR_PORT_AB_A_LEFT, a
+        jr nz, +
+            ex af, af'
+                call ScrollLeft
+            ex af, af'
+        +:
+
+        ; scroll right
         bit CTLR_PORT_AB_A_RIGHT, a
         jr nz, +
-            call ScrollRight
-            jr MainLoop
+            ex af, af'
+                call ScrollRight
+            ex af, af'
         +:
 
         jr MainLoop
 
+    ; Decrements vertical scroll value
+    ; Clobbers: a
+    ScrollUp:
+        ld a, (VDPScrollY)
+        sub a, SCROLL_INCREMENT
+        jr nc, +
+            ld a, 0    
+        +:
+        ld (VDPScrollY), a
+        ret
+
+    ; Increments vertical scroll value
+    ; Clobbers: a
+    ScrollDown:
+        ld a, (VDPScrollY)
+        add a, SCROLL_INCREMENT
+        cp 32
+        jr c, +
+            ld a, 32
+        +:
+        ld (VDPScrollY), a
+        ret
+
     ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
     ; Clobbers: a, hl, bc, de
     ScrollLeft:
-        ; load current BG scroll value from RAM
-        ld hl, (BGScroll)
+        ; load current value of BGScrollX from RAM
+        ld hl, (BGScrollX)
 
-        ; the current BGScroll value is also the max available scroll distance
+        ; the current value of BGScrollX is the max available scroll distance
 
         ; if distance is 0, nothing to do
         ld a, h
         or l
         ret z
 
-        ; store original BGScroll value for later
+        ; store original BGScrollX value for later
         ld d, h
         ld e, l
 
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; reduce VDPScroll by clamped value
-        ld a, (VDPScroll)
+        ; reduce VDPScrollX by clamped value
+        ld a, (VDPScrollX)
         sub a, l
-        ld (VDPScroll), a
+        ld (VDPScrollX), a
 
-        ; find the horizontal offset of the first vertical line of pixels on the viewport
+        ; find the horizontal offset of the first vertical line of pixels now on the viewport
         add a, 8
 
         ; (integer) divide by 8 to get column number
@@ -209,11 +258,11 @@
         ; set the VDP column to be redrawn
         ld (RedrawVDPCol), a
 
-        ; reduce BGScroll by clamped value
-        ex de, hl               ; hl = BGScroll
+        ; reduce BGScrollX by clamped value
+        ex de, hl               ; hl = BGScrollX
         or a                    ; clear carry flag
-        sbc hl, de              ; hl = BGScroll - scroll distance
-        ld (BGScroll), hl       ; BGScroll = BGScroll - scroll distance
+        sbc hl, de              ; hl = BGScrollX - scroll distance
+        ld (BGScrollX), hl      ; BGScrollX = BGScrollX - scroll distance
 
         ; find the vertical offset of the first vertical line of the background that we want to display
         ld bc, 8
@@ -230,14 +279,14 @@
     ; Increments scroll values & sets which column of the background gets shown on the right of the screen
     ; Clobbers: a, hl, bc, de
     ScrollRight:
-        ; load current BG scroll value from RAM
-        ld hl, (BGScroll)
+        ; load current value of BGScrollX from RAM
+        ld hl, (BGScrollX)
 
         ; swap it into de
         ex de, hl
 
         ; find max available scroll distance
-        ld hl, (COLS - 32) * 8
+        ld hl, (BG_COLS - 32) * 8
         or a        ; clear carry flag
         sbc hl, de
 
@@ -249,12 +298,12 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; increase VDPScroll by clamped value
-        ld a, (VDPScroll)
+        ; increase VDPScrollX by clamped value
+        ld a, (VDPScrollX)
         add a, l
-        ld (VDPScroll), a
+        ld (VDPScrollX), a
 
-        ; find the horizontal offset of the last vertical line of pixels on the viewport
+        ; find the horizontal offset of the last vertical line of pixels now on the viewport
         add a, 255
 
         ; (integer) divide by 8 to get column number
@@ -263,10 +312,10 @@
         ; set the VDP column to be redrawn
         ld (RedrawVDPCol), a
 
-        ; increase BGScroll by clamped value
-        ex de, hl               ; hl = BGScroll
-        add hl, de              ; hl = BGScroll + scroll distance
-        ld (BGScroll), hl       ; BGScroll = BGScroll + scroll distance
+        ; increase BGScrollX by clamped value
+        ex de, hl               ; hl = BGScrollX
+        add hl, de              ; hl = BGScrollX + scroll distance
+        ld (BGScrollX), hl      ; BGScrollX = BGScrollX + scroll distance
 
         ; find the horizontal offset of the first vertical line of the background that we want to display
         ld bc, 255
@@ -309,7 +358,7 @@
         add hl, hl                      ; hl = bg col index * 2
         ld (BGColOffset), hl            ; BGColOffset = col index * 2
         
-        ld a, 46                        ; a = row index * 2
+        ld a, 27*2                      ; a = row index * 2
         -:
             ; set VRAM write command / address
 
@@ -357,13 +406,13 @@
 
 .section "row_offset_tables"
     VRAMOffsetTable:
-        .repeat 24 index i
+        .repeat 28 index i
             .dw (VDP_CMD_VRAM_WRITE << 8 | $3800) + i*32*2  ; VDP write bits + row offset
         .endr
 
     BGRowOffsetTable:
-        .repeat 24 index i
-            .dw Tilemap + i*COLS*2                          ; Tilemap address + row offset
+        .repeat BG_ROWS index i
+            .dw Tilemap + i*BG_COLS*2                       ; Tilemap address + row offset
         .endr
 .ends
 
