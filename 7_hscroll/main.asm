@@ -103,8 +103,8 @@
             ld h, 0
             ld l, a                     ; hl = row index * 2
 
-            ld bc, VRAMOffsetTable
-            add hl, bc                  ; hl = VRAMOffsetTable + row index * 2
+            ld bc, VRAMRowAddrs
+            add hl, bc                  ; hl = VRAMRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
@@ -120,8 +120,8 @@
             ld h, 0
             ld l, a                     ; hl = row index * 2
 
-            ld bc, BGRowOffsetTable
-            add hl, bc                  ; hl = BGRowOffsetTable + row index * 2
+            ld bc, BGRowAddrs
+            add hl, bc                  ; hl = BGRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
@@ -315,8 +315,8 @@
             ld h, 0
             ld l, a                     ; hl = row index * 2
 
-            ld bc, VRAMOffsetTable
-            add hl, bc                  ; hl = VRAMOffsetTable + row index * 2
+            ld bc, VRAMRowAddrs
+            add hl, bc                  ; hl = VRAMRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
@@ -335,8 +335,8 @@
             ld h, 0
             ld l, a                     ; hl = row index * 2
 
-            ld bc, BGRowOffsetTable
-            add hl, bc                  ; hl = BGRowOffsetTable + row index * 2
+            ld bc, BGRowAddrs
+            add hl, bc                  ; hl = BGRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
@@ -354,13 +354,15 @@
         ret
 .ends
 
-.section "row_offset_tables"
-    VRAMOffsetTable:
+.section "row_addr_tables"
+    ; Addresses of each row of VRAM
+    VRAMRowAddrs:
         .repeat 24 index i
             .dw (VDP_CMD_VRAM_WRITE << 8 | $3800) + i*32*2  ; VDP write bits + row offset
         .endr
 
-    BGRowOffsetTable:
+    ; Addresses of each row of the background
+    BGRowAddrs:
         .repeat 24 index i
             .dw Tilemap + i*COLS*2                          ; Tilemap address + row offset
         .endr
