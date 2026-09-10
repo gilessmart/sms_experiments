@@ -15,10 +15,10 @@
     BGScrollX: dw
     VDPScrollX: db
     VDPScrollY: db
-    RedrawBGCol: dw
-    RedrawVDPCol: dw
-    VDPColOffset: dw
-    BGColOffset: dw
+    RedrawCol_BGCol: dw
+    RedrawCol_VDPCol: dw
+    RedrawCol_VDPColAddrOffset: dw
+    RedrawCol_BGColAddrOffset: dw
 .ends
 
 .bank 0
@@ -104,7 +104,7 @@
         call VDP_CopyData
 
         ; setup tilemap
-        ld a, 27*2                    ; a = row index * 2
+        ld a, 27*2                      ; a = row index * 2
         -:
             ; set VRAM write command / address
 
@@ -152,9 +152,9 @@
         ld (VDPScrollX), a
         ld (VDPScrollY), a
         ld bc, 0
-        ld (RedrawVDPCol), bc
         ld (BGScrollX), bc
-        ld (RedrawBGCol), bc
+        ld (RedrawCol_VDPCol), bc
+        ld (RedrawCol_BGCol), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -254,7 +254,7 @@
         ShiftRightA 3
 
         ; set the VDP column to be redrawn
-        ld (RedrawVDPCol), a
+        ld (RedrawCol_VDPCol), a
 
         ; reduce BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
@@ -270,7 +270,7 @@
         ShiftRightHL 3
 
         ; set the background row to be redrawn
-        ld (RedrawBGCol), hl
+        ld (RedrawCol_BGCol), hl
 
         ret
     
@@ -308,7 +308,7 @@
         ShiftRightA 3
 
         ; set the VDP column to be redrawn
-        ld (RedrawVDPCol), a
+        ld (RedrawCol_VDPCol), a
 
         ; increase BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
@@ -323,7 +323,7 @@
         ShiftRightHL 3
 
         ; set the background row to be redrawn
-        ld (RedrawBGCol), hl
+        ld (RedrawCol_BGCol), hl
 
         ret
 
@@ -348,54 +348,54 @@
 .section "redraw_col"
     RedrawCol:
         ; calculate & store col offset
-        ld hl, (RedrawVDPCol)
-        add hl, hl                      ; hl = col index * 2
-        ld (VDPColOffset), hl           ; VDPColOffset = col index * 2
+        ld hl, (RedrawCol_VDPCol)
+        add hl, hl                              ; hl = col index * 2
+        ld (RedrawCol_VDPColAddrOffset), hl     ; RedrawCol_VDPColAddrOffset = col index * 2
 
-        ld hl, (RedrawBGCol)
-        add hl, hl                      ; hl = bg col index * 2
-        ld (BGColOffset), hl            ; BGColOffset = col index * 2
+        ld hl, (RedrawCol_BGCol)
+    add hl, hl                                  ; hl = bg col index * 2
+        ld (RedrawCol_BGColAddrOffset), hl      ; RedrawCol_BGColAddrOffset = col index * 2
         
-        ld a, 27*2                      ; a = row index * 2
+        ld a, 27*2                              ; a = row index * 2
         -:
             ; set VRAM write command / address
 
             ld h, 0
-            ld l, a                     ; hl = row index * 2
+            ld l, a                             ; hl = row index * 2
 
             ld bc, VRAMRowAddrs
-            add hl, bc                  ; hl = VRAMRowAddrs + row index * 2
+            add hl, bc                          ; hl = VRAMRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
-            ld d, (hl)                  ; de = VDP write bits + row offset
+            ld d, (hl)                          ; de = VDP write bits + row offset
         
-            ld hl, (VDPColOffset)       ; hl = col offset
+            ld hl, (RedrawCol_VDPColAddrOffset) ; hl = col offset
 
-            add hl, de                  ; hl = VDP write bits + row offset + col offset
+            add hl, de                          ; hl = VDP write bits + row offset + col offset
 
             ld c, VDP_CTRL_PORT
             out (c), l
-            out (c), h                  ; output hl to VDP
+            out (c), h                          ; output hl to VDP
 
             ; set VRAM data
 
             ld h, 0
-            ld l, a                     ; hl = row index * 2
+            ld l, a                             ; hl = row index * 2
 
             ld bc, BGRowAddrs
-            add hl, bc                  ; hl = BGRowAddrs + row index * 2
+            add hl, bc                          ; hl = BGRowAddrs + row index * 2
 
             ld e, (hl)
             inc hl
-            ld d, (hl)                  ; de = Tilemap + row offset
+            ld d, (hl)                          ; de = Tilemap + row offset
 
-            ld hl, (BGColOffset)        ; hl = BGColOffset
-            add hl, de                  ; hl = Tilemap + row offset + BGColOffset
+            ld hl, (RedrawCol_BGColAddrOffset)  ; hl = RedrawCol_BGColAddrOffset
+            add hl, de                          ; hl = Tilemap + row offset + RedrawCol_BGColAddrOffset
 
             ld c, VDP_DATA_PORT
             ld b, 2
-            otir                        ; output 2 bytes starting at memory address hl to VDP
+            otir                                ; output 2 bytes starting at memory address hl to VDP
         sub 2
         jr nc, -
         
