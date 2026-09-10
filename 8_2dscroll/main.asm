@@ -167,37 +167,35 @@
         ; load controller state into register d
         in a, CTLR_PORT_AB
 
-        ; scroll up
+        ; scroll up / down
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
                 call ScrollUp
             ex af, af'
+            jr ++
         +:
-
-        ; scroll down
         bit CTLR_PORT_AB_A_DOWN, a
-        jr nz, +
+        jr nz, ++
             ex af, af'
                 call ScrollDown
             ex af, af'
-        +:
+        ++:
 
-        ; scroll left
+        ; scroll left / right
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
                 call ScrollLeft
             ex af, af'
+            jr ++
         +:
-
-        ; scroll right
         bit CTLR_PORT_AB_A_RIGHT, a
-        jr nz, +
+        jr nz, ++
             ex af, af'
                 call ScrollRight
             ex af, af'
-        +:
+        ++:
 
         jr MainLoop
 
