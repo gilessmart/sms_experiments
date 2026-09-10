@@ -345,7 +345,7 @@
         ret
 .ends
 
-.section "redraw_row"
+.section "redraw_col"
     RedrawCol:
         ; calculate & store col offset
         ld hl, (RedrawVDPCol)
