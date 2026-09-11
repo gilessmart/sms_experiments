@@ -164,7 +164,7 @@
     MainLoop:
         halt
 
-        ; load controller state into register d
+        ; read controller state
         in a, CTLR_PORT_AB
 
         ; scroll up / down
@@ -353,7 +353,7 @@
         ld (RedrawCol_VDPColAddrOffset), hl     ; RedrawCol_VDPColAddrOffset = col index * 2
 
         ld hl, (RedrawCol_BGCol)
-    add hl, hl                                  ; hl = bg col index * 2
+        add hl, hl                              ; hl = bg col index * 2
         ld (RedrawCol_BGColAddrOffset), hl      ; RedrawCol_BGColAddrOffset = col index * 2
         
         ld a, 27*2                              ; a = row index * 2

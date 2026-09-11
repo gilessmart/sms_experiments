@@ -107,7 +107,7 @@
     MainLoop:
         halt
 
-        ; load controller state into register b
+        ; read controller state into register b
         in a, CTLR_PORT_AB
         ld b, a
 

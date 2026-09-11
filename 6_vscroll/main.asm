@@ -119,7 +119,7 @@
     MainLoop:
         halt
 
-        ; load controller state into register d
+        ; read controller state
         in a, CTLR_PORT_AB
 
         ; scroll up
