@@ -366,13 +366,13 @@
             ld bc, VRAMRowAddrs
             add hl, bc                          ; hl = VRAMRowAddrs + row index * 2
 
-            ld e, (hl)
+            ld c, (hl)
             inc hl
-            ld d, (hl)                          ; de = VDP write bits + row offset
+            ld b, (hl)                          ; bc = VDP write bits + row offset
         
             ld hl, (RedrawCol_VDPColAddrOffset) ; hl = col offset
 
-            add hl, de                          ; hl = VDP write bits + row offset + col offset
+            add hl, bc                          ; hl = VDP write bits + row offset + col offset
 
             ld c, VDP_CTRL_PORT
             out (c), l
@@ -386,12 +386,12 @@
             ld bc, BGRowAddrs
             add hl, bc                          ; hl = BGRowAddrs + row index * 2
 
-            ld e, (hl)
+            ld c, (hl)
             inc hl
-            ld d, (hl)                          ; de = Tilemap + row offset
+            ld b, (hl)                          ; bc = Tilemap + row offset
 
             ld hl, (RedrawCol_BGColAddrOffset)  ; hl = RedrawCol_BGColAddrOffset
-            add hl, de                          ; hl = Tilemap + row offset + RedrawCol_BGColAddrOffset
+            add hl, bc                          ; hl = Tilemap + row offset + RedrawCol_BGColAddrOffset
 
             ld c, VDP_DATA_PORT
             ld b, 2
