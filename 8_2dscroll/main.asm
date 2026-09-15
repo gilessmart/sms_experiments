@@ -13,6 +13,7 @@
 
 .ramsection "main_state" slot 2
     BGScrollX: dw
+    BGScrollY: dw
     VDPScrollX: db
     VDPScrollY: db
     RedrawCol_BGCol: dw
@@ -71,7 +72,7 @@
 .ends
 
 .define SCROLL_INCREMENT 5  ; max = 8
-.define BG_ROWS 42          ; cols in background
+.define BG_ROWS 28          ; cols in background
 .define BG_COLS 194         ; cols in background
 
 .section "main"
@@ -153,6 +154,7 @@
         ld (VDPScrollY), a
         ld bc, 0
         ld (BGScrollX), bc
+        ld (BGScrollY), bc
         ld (RedrawCol_VDPCol), bc
         ld (RedrawCol_BGCol), bc
 
@@ -199,27 +201,67 @@
 
         jr MainLoop
 
-    ; Decrements vertical scroll value
-    ; Clobbers: a
+    ; Decrements vertical scroll values
+    ; Clobbers: a, bc, de, hl
     ScrollUp:
+        ld hl, (BGScrollY)
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; store original BG scroll value for later
+        ld d, h
+        ld e, l
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; reduce VDPScrollY by clamped value
         ld a, (VDPScrollY)
-        sub a, SCROLL_INCREMENT
-        jr nc, +
-            ld a, 0    
-        +:
+        sub a, l
         ld (VDPScrollY), a
+
+        ; reduce BGScrollX by clamped value
+        ex de, hl               ; hl = BGScrollY
+        or a                    ; clear carry flag
+        sbc hl, de              ; hl = BGScrollX - scroll distance
+        ld (BGScrollY), hl      ; BGScrollY = BGScrollY - scroll distance
+
         ret
 
-    ; Increments vertical scroll value
-    ; Clobbers: a
+    ; Increments vertical scroll values
+    ; Clobbers: a, bc, de, hl
     ScrollDown:
+        ld hl, (BGScrollY)
+
+        ; swap it into de
+        ex de, hl
+
+        ; find max available scroll distance
+        ld hl, (BG_ROWS - 24) * 8
+        or a        ; clear carry flag
+        sbc hl, de
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; increase VDPScrollY by clamped value
         ld a, (VDPScrollY)
-        add a, SCROLL_INCREMENT
-        cp 32
-        jr c, +
-            ld a, 32
-        +:
+        add a, l
         ld (VDPScrollY), a
+
+        ; increase BGScrollY by clamped value
+        ex de, hl               ; hl = BGScrollY
+        add hl, de              ; hl = BGScrollY + scroll distance
+        ld (BGScrollY), hl      ; BGScrollX = BGScrollY + scroll distance
+
         ret
 
     ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
