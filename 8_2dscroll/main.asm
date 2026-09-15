@@ -20,6 +20,9 @@
     RedrawCol_VDPCol: dw
     RedrawCol_VDPColAddrOffset: dw
     RedrawCol_BGColAddrOffset: dw
+    TopVisibleVRAMRow: db
+    TopVisibleBGRow: db
+    VisibleRowCount: db
 .ends
 
 .bank 0
@@ -104,6 +107,7 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
+        ; TODO - only draw the visible rows
         ; setup tilemap
         ld a, 27*2                      ; a = row index * 2
         -:
@@ -152,6 +156,10 @@
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
+        ld (TopVisibleVRAMRow), a
+        ld (TopVisibleBGRow), a
+        ld a, 24
+        ld (VisibleRowCount), a
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
@@ -175,7 +183,7 @@
             ex af, af'
                 call ScrollUp
             ex af, af'
-            jr ++
+        jr ++
         +:
         bit CTLR_PORT_AB_A_DOWN, a
         jr nz, ++
@@ -190,13 +198,35 @@
             ex af, af'
                 call ScrollLeft
             ex af, af'
-            jr ++
+        jr ++
         +:
         bit CTLR_PORT_AB_A_RIGHT, a
         jr nz, ++
             ex af, af'
                 call ScrollRight
             ex af, af'
+        ++:
+
+        ; calculate TopVisibleVRAMRow
+        ld a, (VDPScrollY)
+        ShiftRightA 3
+        ld (TopVisibleVRAMRow), a
+
+        ; calculate TopVisibleBGRow
+        ld hl, (BGScrollY)
+        ShiftRightHL 3
+        ld a, l
+        ld (TopVisibleBGRow), a
+
+        ; calculate VisibleRowCount
+        ld hl, VisibleRowCount
+        ld a, (VDPScrollY)
+        and 7                           ; a = fine scroll value
+        jr z, +
+            ld (hl), 25                 ; a != 0
+        jr ++
+        +:
+            ld (hl), 24                 ; a == 0
         ++:
 
         jr MainLoop
@@ -398,15 +428,25 @@
         add hl, hl                              ; hl = bg col index * 2
         ld (RedrawCol_BGColAddrOffset), hl      ; RedrawCol_BGColAddrOffset = col index * 2
         
-        ld a, 27*2                              ; a = row index * 2
+        ld a, 0
         -:
+            ; copy the counter
+            ld d, a
+            
             ; set VRAM write command / address
+            ld hl, TopVisibleVRAMRow
+            add (hl)                            ; a = TopVisibleVRAMRow + row index
+            cp 28                               ; if a - 28 carries (i.e. a < 28), c flag is set
+            jr c, +                             ; skip ahead if c flag is set (i.e. a < 28)
+                sub 28
+            +:                                  ; a = (TopVisibleVRAMRow + row index) mod 28
+            add a                               ; a = ((TopVisibleVRAMRow + row index) mod 28) * 2
 
             ld h, 0
-            ld l, a                             ; hl = row index * 2
+            ld l, a                             ; hl = ((TopVisibleVRAMRow + row index) mod 28) * 2
 
             ld bc, VRAMRowAddrs
-            add hl, bc                          ; hl = VRAMRowAddrs + row index * 2
+            add hl, bc                          ; hl = VRAMRowAddrs + ((TopVisibleVRAMRow + row index) mod 28) * 2
 
             ld c, (hl)
             inc hl
@@ -421,25 +461,37 @@
             out (c), h                          ; output hl to VDP
 
             ; set VRAM data
+            ld a, d                             ; a = row index
+            
+            ld hl, TopVisibleBGRow
+            add (hl)                            ; a = TopVisibleBGRow + row index
+            add a                               ; a = (TopVisibleBGRow + row index) * 2
 
             ld h, 0
-            ld l, a                             ; hl = row index * 2
+            ld l, a                             ; hl = (TopVisibleBGRow + row index) * 2
 
             ld bc, BGRowAddrs
-            add hl, bc                          ; hl = BGRowAddrs + row index * 2
+            add hl, bc                          ; hl = BGRowAddrs + (TopVisibleBGRow + row index) * 2
 
             ld c, (hl)
             inc hl
             ld b, (hl)                          ; bc = Tilemap + row offset
 
             ld hl, (RedrawCol_BGColAddrOffset)  ; hl = RedrawCol_BGColAddrOffset
-            add hl, bc                          ; hl = Tilemap + row offset + RedrawCol_BGColAddrOffset
+            add hl, bc                          ; hl = Tilemap + row offset + col offset
 
             ld c, VDP_DATA_PORT
             ld b, 2
             otir                                ; output 2 bytes starting at memory address hl to VDP
-        sub 2
-        jr nc, -
+
+            ; reinstate the counter
+            ld a, d
+        
+            ; loop if counter != VisibleRowCount
+            inc a
+            ld hl, VisibleRowCount
+            cp (hl)
+            jr nz, -
         
         ret
 .ends
