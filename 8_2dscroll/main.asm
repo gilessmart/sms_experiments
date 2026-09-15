@@ -13,12 +13,15 @@
 
 .ramsection "main_state" slot 2
     BGScrollX: dw
+    BGScrollY: dw
     VDPScrollX: db
     VDPScrollY: db
     RedrawCol_BGCol: dw
     RedrawCol_VDPCol: dw
     RedrawCol_VDPColAddrOffset: dw
     RedrawCol_BGColAddrOffset: dw
+    TopVisibleVRAMRow: db
+    TopVisibleBGRow: db
 .ends
 
 .bank 0
@@ -103,6 +106,7 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
+        ; TODO - only draw the visible rows
         ; setup tilemap
         ld a, 27*2                      ; a = row index * 2
         -:
@@ -151,8 +155,11 @@
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
+        ld (TopVisibleVRAMRow), a
+        ld (TopVisibleBGRow), a        
         ld bc, 0
         ld (BGScrollX), bc
+        ld (BGScrollY), bc
         ld (RedrawCol_VDPCol), bc
         ld (RedrawCol_BGCol), bc
 
@@ -197,29 +204,80 @@
             ex af, af'
         ++:
 
+        ; Calculate TopVisibleVRAMRow
+        ld a, (VDPScrollY)
+        ShiftRightA 3
+        ld (TopVisibleVRAMRow), a
+
+        ; Calculate TopVisibleBGRow
+        ld hl, (BGScrollY)
+        ShiftRightHL 3
+        ld a, l
+        ld (TopVisibleBGRow), a
+
         jr MainLoop
 
-    ; Decrements vertical scroll value
-    ; Clobbers: a
+    ; Decrements vertical scroll values
+    ; Clobbers: a, bc, de, hl
     ScrollUp:
+        ld hl, (BGScrollY)
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; store original BG scroll value for later
+        ld d, h
+        ld e, l
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; reduce VDPScrollY by clamped value
         ld a, (VDPScrollY)
-        sub a, SCROLL_INCREMENT
-        jr nc, +
-            ld a, 0    
-        +:
+        sub a, l
         ld (VDPScrollY), a
+
+        ; reduce BGScrollX by clamped value
+        ex de, hl               ; hl = BGScrollY
+        or a                    ; clear carry flag
+        sbc hl, de              ; hl = BGScrollX - scroll distance
+        ld (BGScrollY), hl      ; BGScrollY = BGScrollY - scroll distance
+
         ret
 
-    ; Increments vertical scroll value
-    ; Clobbers: a
+    ; Increments vertical scroll values
+    ; Clobbers: a, bc, de, hl
     ScrollDown:
+        ld hl, (BGScrollY)
+
+        ; swap it into de
+        ex de, hl
+
+        ; find max available scroll distance
+        ld hl, (BG_ROWS - 24) * 8
+        or a        ; clear carry flag
+        sbc hl, de
+
+        ; if distance is 0, nothing to do
+        ld a, h
+        or l
+        ret z
+
+        ; clamp hl value to the size of the scroll increment
+        call ClampToScrollIncrement
+
+        ; increase VDPScrollY by clamped value
         ld a, (VDPScrollY)
-        add a, SCROLL_INCREMENT
-        cp 32
-        jr c, +
-            ld a, 32
-        +:
+        add a, l
         ld (VDPScrollY), a
+
+        ; increase BGScrollY by clamped value
+        ex de, hl               ; hl = BGScrollY
+        add hl, de              ; hl = BGScrollY + scroll distance
+        ld (BGScrollY), hl      ; BGScrollX = BGScrollY + scroll distance
+
         ret
 
     ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
@@ -356,15 +414,26 @@
         add hl, hl                              ; hl = bg col index * 2
         ld (RedrawCol_BGColAddrOffset), hl      ; RedrawCol_BGColAddrOffset = col index * 2
         
-        ld a, 27*2                              ; a = row index * 2
+        ld a, 0
         -:
+            ; copy the counter
+            ld d, a
+            
             ; set VRAM write command / address
 
+            ld hl, TopVisibleVRAMRow
+            add (hl)                            ; a = TopVisibleVRAMRow + row index
+            cp 28                               ; if a < 28, c flag is set
+            jr nc, +
+                sub 28
+            +                                   ; a = (TopVisibleVRAMRow + row index) mod 28
+            add a                               ; a = ((TopVisibleVRAMRow + row index) mod 28) * 2
+
             ld h, 0
-            ld l, a                             ; hl = row index * 2
+            ld l, a                             ; hl = ((TopVisibleVRAMRow + row index) mod 28) * 2
 
             ld bc, VRAMRowAddrs
-            add hl, bc                          ; hl = VRAMRowAddrs + row index * 2
+            add hl, bc                          ; hl = VRAMRowAddrs + ((TopVisibleVRAMRow + row index) mod 28) * 2
 
             ld c, (hl)
             inc hl
@@ -380,24 +449,35 @@
 
             ; set VRAM data
 
+            ld a, d                             ; a = row index
+            
+            ld hl, TopVisibleBGRow
+            add (hl)                            ; a = TopVisibleBGRow + row index
+            add a                               ; a = (TopVisibleBGRow + row index) * 2
+
             ld h, 0
-            ld l, a                             ; hl = row index * 2
+            ld l, a                             ; hl = (TopVisibleBGRow + row index) * 2
 
             ld bc, BGRowAddrs
-            add hl, bc                          ; hl = BGRowAddrs + row index * 2
+            add hl, bc                          ; hl = BGRowAddrs + (TopVisibleBGRow + row index) * 2
 
             ld c, (hl)
             inc hl
             ld b, (hl)                          ; bc = Tilemap + row offset
 
             ld hl, (RedrawCol_BGColAddrOffset)  ; hl = RedrawCol_BGColAddrOffset
-            add hl, bc                          ; hl = Tilemap + row offset + RedrawCol_BGColAddrOffset
+            add hl, bc                          ; hl = Tilemap + row offset + col offset
 
             ld c, VDP_DATA_PORT
             ld b, 2
             otir                                ; output 2 bytes starting at memory address hl to VDP
-        sub 2
-        jr nc, -
+
+            ; reinstate the counter
+            ld a, d
+        ; compare with bottom visible row
+        inc a
+        cp 24
+        jr nz, -
         
         ret
 .ends
