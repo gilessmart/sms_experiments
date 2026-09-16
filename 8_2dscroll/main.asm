@@ -20,9 +20,12 @@
     RedrawCol_VDPCol: dw
     RedrawCol_VDPColAddrOffset: dw
     RedrawCol_BGColAddrOffset: dw
-    TopVisibleVRAMRow: db
-    TopVisibleBGRow: db
+    FirstVisibleVRAMRow: db
+    FirstVisibleBGRow: db
     VisibleRowCount: db
+    FirstVisibleVRAMCol: db
+    FirstVisibleBGCol: db
+    VisibleColCount: db
 .ends
 
 .bank 0
@@ -156,10 +159,14 @@
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
-        ld (TopVisibleVRAMRow), a
-        ld (TopVisibleBGRow), a
+        ld (FirstVisibleVRAMRow), a
+        ld (FirstVisibleBGRow), a
+        ld (FirstVisibleVRAMCol), a
+        ld (FirstVisibleBGCol), a
         ld a, 24
         ld (VisibleRowCount), a
+        ld a, 31
+        ld (VisibleColCount), a
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
@@ -207,16 +214,23 @@
             ex af, af'
         ++:
 
-        ; calculate TopVisibleVRAMRow
+        call CalculateVisibleTiles
+
+        jr MainLoop
+
+    ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
+    ; Clobbers: a, hl
+    CalculateVisibleTiles:
+        ; calculate FirstVisibleVRAMRow
         ld a, (VDPScrollY)
         ShiftRightA 3
-        ld (TopVisibleVRAMRow), a
+        ld (FirstVisibleVRAMRow), a
 
-        ; calculate TopVisibleBGRow
+        ; calculate FirstVisibleBGRow
         ld hl, (BGScrollY)
         ShiftRightHL 3
         ld a, l
-        ld (TopVisibleBGRow), a
+        ld (FirstVisibleBGRow), a
 
         ; calculate VisibleRowCount
         ld hl, VisibleRowCount
@@ -229,7 +243,31 @@
             ld (hl), 24                 ; a == 0
         ++:
 
-        jr MainLoop
+        ; calculate FirstVisibleVRAMCol
+        ld a, (VDPScrollX)
+        add 8
+        ShiftRightA 3
+        ld (FirstVisibleVRAMCol), a
+
+        ; calculate FirstVisibleBGCol
+        ld hl, (BGScrollX)
+        add 8
+        ShiftRightHL 3
+        ld a, l
+        ld (FirstVisibleBGCol), a
+
+        ; calculate VisibleColCount
+        ld hl, VisibleColCount
+        ld a, (VDPScrollX)
+        and 7                           ; a = fine scroll value
+        jr z, +
+            ld (hl), 32                 ; a != 0
+        jr ++
+        +:
+            ld (hl), 31                 ; a == 0
+        ++:
+
+        ret
 
     ; Decrements vertical scroll values
     ; Clobbers: a, bc, de, hl
@@ -434,19 +472,19 @@
             ld d, a
             
             ; set VRAM write command / address
-            ld hl, TopVisibleVRAMRow
-            add (hl)                            ; a = TopVisibleVRAMRow + row index
+            ld hl, FirstVisibleVRAMRow
+            add (hl)                            ; a = FirstVisibleVRAMRow + row index
             cp 28                               ; if a - 28 carries (i.e. a < 28), c flag is set
             jr c, +                             ; skip ahead if c flag is set (i.e. a < 28)
                 sub 28
-            +:                                  ; a = (TopVisibleVRAMRow + row index) mod 28
-            add a                               ; a = ((TopVisibleVRAMRow + row index) mod 28) * 2
+            +:                                  ; a = (FirstVisibleVRAMRow + row index) mod 28
+            add a                               ; a = ((FirstVisibleVRAMRow + row index) mod 28) * 2
 
             ld h, 0
-            ld l, a                             ; hl = ((TopVisibleVRAMRow + row index) mod 28) * 2
+            ld l, a                             ; hl = ((FirstVisibleVRAMRow + row index) mod 28) * 2
 
             ld bc, VRAMRowAddrs
-            add hl, bc                          ; hl = VRAMRowAddrs + ((TopVisibleVRAMRow + row index) mod 28) * 2
+            add hl, bc                          ; hl = VRAMRowAddrs + ((FirstVisibleVRAMRow + row index) mod 28) * 2
 
             ld c, (hl)
             inc hl
@@ -463,15 +501,15 @@
             ; set VRAM data
             ld a, d                             ; a = row index
             
-            ld hl, TopVisibleBGRow
-            add (hl)                            ; a = TopVisibleBGRow + row index
-            add a                               ; a = (TopVisibleBGRow + row index) * 2
+            ld hl, FirstVisibleBGRow
+            add (hl)                            ; a = FirstVisibleBGRow + row index
+            add a                               ; a = (FirstVisibleBGRow + row index) * 2
 
             ld h, 0
-            ld l, a                             ; hl = (TopVisibleBGRow + row index) * 2
+            ld l, a                             ; hl = (FirstVisibleBGRow + row index) * 2
 
             ld bc, BGRowAddrs
-            add hl, bc                          ; hl = BGRowAddrs + (TopVisibleBGRow + row index) * 2
+            add hl, bc                          ; hl = BGRowAddrs + (FirstVisibleBGRow + row index) * 2
 
             ld c, (hl)
             inc hl
