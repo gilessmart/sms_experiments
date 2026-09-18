@@ -26,6 +26,9 @@
     FirstVisibleVRAMCol: db
     FirstVisibleBGCol: db
     VisibleColCount: db
+    RedrawRow_BGRow: dw
+    RedrawRow_VDPRow: dw
+    VScrollDir: db
 .ends
 
 .bank 0
@@ -66,6 +69,7 @@
     VDP_SetRegister 9
 
     call RedrawCol
+    call RedrawRow
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -78,7 +82,7 @@
 .ends
 
 .define SCROLL_INCREMENT 5  ; max = 8
-.define BG_ROWS 28          ; cols in background
+.define BG_ROWS 42          ; cols in background
 .define BG_COLS 194         ; cols in background
 
 .section "main"
@@ -161,8 +165,11 @@
         ld (VDPScrollY), a
         ld (FirstVisibleVRAMRow), a
         ld (FirstVisibleBGRow), a
+        ld a, 1
         ld (FirstVisibleVRAMCol), a
         ld (FirstVisibleBGCol), a
+        ld a, VSCROLL_DIR_NONE
+        ld (VScrollDir), a
         ld a, 24
         ld (VisibleRowCount), a
         ld a, 31
@@ -185,10 +192,14 @@
         in a, CTLR_PORT_AB
 
         ; scroll up / down
+        ld hl, VScrollDir
+        ld (hl), VSCROLL_DIR_NONE
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
                 call ScrollUp
+                ld hl, VScrollDir
+                ld (hl), VSCROLL_DIR_UP
             ex af, af'
         jr ++
         +:
@@ -196,6 +207,8 @@
         jr nz, ++
             ex af, af'
                 call ScrollDown
+                ld hl, VScrollDir
+                ld (hl), VSCROLL_DIR_DOWN
             ex af, af'
         ++:
 
@@ -245,13 +258,14 @@
 
         ; calculate FirstVisibleVRAMCol
         ld a, (VDPScrollX)
-        add 8
+        add a, 8
         ShiftRightA 3
         ld (FirstVisibleVRAMCol), a
 
         ; calculate FirstVisibleBGCol
         ld hl, (BGScrollX)
-        add 8
+        ld bc, 8
+        add hl, bc
         ShiftRightHL 3
         ld a, l
         ld (FirstVisibleBGCol), a
@@ -308,7 +322,9 @@
         ex de, hl
 
         ; find max available scroll distance
-        ld hl, (BG_ROWS - 24) * 8
+        ; TODO - revert
+        ; ld hl, (BG_ROWS - 24) * 8
+        ld hl, (28 - 24) * 8
         or a        ; clear carry flag
         sbc hl, de
 
@@ -455,7 +471,7 @@
         ret
 .ends
 
-.section "redraw_col"
+.section "redraw_tiles"
     RedrawCol:
         ; calculate & store col offset
         ld hl, (RedrawCol_VDPCol)
@@ -531,6 +547,114 @@
             cp (hl)
             jr nz, -
         
+        ret
+
+    ; TODO - move
+    .define VSCROLL_DIR_UP 0
+    .define VSCROLL_DIR_NONE 1
+    .define VSCROLL_DIR_DOWN 2
+
+    RedrawRow:
+        ; if we've scrolled down, draw the LastVisibleRow
+        ; if we've scrolled up, draw the FirstVisibleRow
+
+        ; TODO - pull up 1 level?
+        ; if we've not scrolled, do nothing
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_NONE
+        ret z
+
+        ; draw from FirstVisibleCol index to LastvisibleColIndex
+
+        ; VRAM address of the first tile we want to draw:
+        ;   VRAM start + row index * 32 * 2 + col index * 32 * 2
+        ; = VRAM start + (row index + col index) * 64
+        ; about 8 16bit adds and a 16 bit load from literal
+        ; or look it up:
+        ; *(VRAMRowAddrs + row index * 2) + col index * 2
+        ; about 3 16 bit adds and a 16 bit load from RAM
+        ; let's look it up
+
+        ; actually..
+        ; we're going to populate the whole row of VRAM every time so always 64 bytes
+        ; but it's not simple because we need to go:
+        ; from FirstVisibleVDPCol -> col 31, then col 0 -> (FirstVisbileVDPCol - 1) mod 32
+        ; populating with:
+        ; FirstVisibleBGCol -> ??, then col ?? +1 -> FirstVisibleVDPCol + 31...
+
+        ; let's try just FirstVisibleCol...
+
+        ; lookup the VDP write bits / VDP address of the first tile in the row
+        ; and send to VDP
+
+        ld a, (FirstVisibleVRAMRow)
+        ld b, a                             ; b = first visible VRAM row idx
+
+        ; TODO skip ahead if we're drawing the top row..
+        ld a, (VisibleRowCount)
+        add a, b                            ; a = first visible VRAM row idx + visible row count
+        sub a, 1                            ; a = last visible VRAM row idx
+        
+        +:
+        add a, a                            ; a = last visible VRAM row addr offset from VRAMRowAddrs
+
+        ld d, 0
+        ld e, a                             ; de = last visible VRAM row addr offset from VRAMRowAddrs
+
+        ld hl, VRAMRowAddrs
+        add hl, de                          ; hl = &VRAMRowAddrs + last visible VRAM row addr offset from VRAMRowAddrs
+        
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                          ; de = VDP write bits + addr of first tile of row
+
+        ld a, (FirstVisibleVRAMCol)         ; a = first visisble VRAM col idx
+        add a, a                            ; a = addr offset of first visible VRAM col
+        ld h, 0
+        ld l, a                             ; hl = addr offset of first visible VRAM col
+
+        add hl, de                          ; hl = VDP write bits + addr of first tile of row + addr offset of first visible col
+
+        ld c, VDP_CTRL_PORT
+        out (c), l
+        out (c), h                          ; output hl to VDP
+
+        ; lookup the BG address of the first tile in the row
+        ; and send to VDP
+
+        ld a, (FirstVisibleBGRow)
+        ld b, a                             ; b = first visible BG row idx
+
+        ; TODO skip ahead if we're drawing the top row..
+        ld a, (VisibleRowCount)
+        add a, b                            ; a = first visible BG row idx + visible row count
+        sub a, 1                            ; a = last visible BG row idx
+        
+        +:
+        add a, a                            ; a = last visible BG row addr offset from start of BGRowAddrs table
+
+        ld b, 0
+        ld c, a                             ; bc = last visible BG row addr offset from start of BGRowAddrs table
+
+        ld hl, BGRowAddrs                   ; hl = BGRowAddrs
+        add hl, bc                          ; hl = BGRowAddrs + last visible BG row addr offset from BGRowAddrs
+
+        ld e, (hl)
+        inc hl
+        ld d, (hl)                          ; de = addr of first tile of row in BG tilemap
+
+        ld a, (FirstVisibleBGCol)           ; a = first visible BG col idx
+        add a, a                            ; a = addr offset of first visible BG col idx (relative to col 0)
+
+        ld h, 0
+        ld l, a                             ; hl = addr offset of first visible BG col idx (relative to col 0)
+
+        add hl, de                          ; hl = addr of first tile of row in BG tilemap + addr offset of first visible BG col idx (relative to col 0)
+
+        ld c, VDP_DATA_PORT
+        ld b, 2
+        otir                                ; output 2 bytes starting at memory address hl to VDP
+
         ret
 .ends
 
