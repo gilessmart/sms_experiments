@@ -1,3 +1,11 @@
+.define VSCROLL_DIR_UP 0
+.define VSCROLL_DIR_NONE 1
+.define VSCROLL_DIR_DOWN 2
+
+.define SCROLL_INCREMENT 5  ; max = 8
+.define BG_ROWS 42          ; cols in background
+.define BG_COLS 194         ; cols in background
+
 .memorymap
     defaultslot 0
     slot 0 $0000 $4000  ; 16K ROM
@@ -80,10 +88,6 @@
 .section "pause_handler" force
     retn
 .ends
-
-.define SCROLL_INCREMENT 5  ; max = 8
-.define BG_ROWS 42          ; cols in background
-.define BG_COLS 194         ; cols in background
 
 .section "main"
     Init:
@@ -548,11 +552,6 @@
             jr nz, -
         
         ret
-
-    ; TODO - move
-    .define VSCROLL_DIR_UP 0
-    .define VSCROLL_DIR_NONE 1
-    .define VSCROLL_DIR_DOWN 2
 
     RedrawRow:
         ; if we've scrolled down, draw the LastVisibleRow
