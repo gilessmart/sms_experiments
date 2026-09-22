@@ -181,6 +181,7 @@
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
+        ld bc, 1
         ld (RedrawCol_VDPCol), bc
         ld (RedrawCol_BGCol), bc
 
