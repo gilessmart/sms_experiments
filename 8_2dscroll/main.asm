@@ -554,47 +554,25 @@
         ret
 
     RedrawRow:
-        ; if we've scrolled down, draw the LastVisibleRow
-        ; if we've scrolled up, draw the FirstVisibleRow
+        ;; if we've not scrolled, exit
 
-        ; TODO - pull up 1 level?
-        ; if we've not scrolled, do nothing
         ld a, (VScrollDir)
         cp VSCROLL_DIR_NONE
         ret z
 
-        ; draw from FirstVisibleCol index to LastvisibleColIndex
+        ;; determine the VRAM row to redraw
 
-        ; VRAM address of the first tile we want to draw:
-        ;   VRAM start + row index * 32 * 2 + col index * 32 * 2
-        ; = VRAM start + (row index + col index) * 64
-        ; about 8 16bit adds and a 16 bit load from literal
-        ; or look it up:
-        ; *(VRAMRowAddrs + row index * 2) + col index * 2
-        ; about 3 16 bit adds and a 16 bit load from RAM
-        ; let's look it up
-
-        ; actually..
-        ; we're going to populate the whole row of VRAM every time so always 64 bytes
-        ; but it's not simple because we need to go:
-        ; from FirstVisibleVDPCol -> col 31, then col 0 -> (FirstVisbileVDPCol - 1) mod 32
-        ; populating with:
-        ; FirstVisibleBGCol -> ??, then col ?? +1 -> FirstVisibleVDPCol + 31...
-
-        ; let's try just FirstVisibleCol...
-
-        ; lookup the VDP write bits / VDP address of the first tile in the row
-        ; and send to VDP
-
-        ld a, (FirstVisibleVRAMRow)
-        ld b, a                             ; b = first visible VRAM row idx
+        ld a, (FirstVisibleVRAMRow)         ; a = first visible VRAM row idx
 
         ; TODO skip ahead if we're drawing the top row..
+        ld b, a                             ; b = first visible VRAM row idx
         ld a, (VisibleRowCount)
         add a, b                            ; a = first visible VRAM row idx + visible row count
         sub a, 1                            ; a = last visible VRAM row idx
-        
         +:
+        
+        ;; lookup the VRAM address of the first visible tile in the row 
+        
         add a, a                            ; a = last visible VRAM row addr offset from VRAMRowAddrs
 
         ld d, 0
@@ -618,18 +596,19 @@
         out (c), l
         out (c), h                          ; output hl to VDP
 
-        ; lookup the BG address of the first tile in the row
-        ; and send to VDP
+        ;; determine the BG row to redraw
 
         ld a, (FirstVisibleBGRow)
-        ld b, a                             ; b = first visible BG row idx
 
         ; TODO skip ahead if we're drawing the top row..
+        ld b, a                             ; b = first visible BG row idx
         ld a, (VisibleRowCount)
         add a, b                            ; a = first visible BG row idx + visible row count
         sub a, 1                            ; a = last visible BG row idx
-        
         +:
+        
+        ;; lookup the BG address of the first visible tile in the row
+        
         add a, a                            ; a = last visible BG row addr offset from start of BGRowAddrs table
 
         ld b, 0
@@ -650,9 +629,19 @@
 
         add hl, de                          ; hl = addr of first tile of row in BG tilemap + addr offset of first visible BG col idx (relative to col 0)
 
+        ;; calculate the number of bytes from the first visisble to the end of the row in VRAM (inclusive)
+        
+        ld a, (FirstVisibleVRAMCol)
+        ld b, a                             ; b = first visisble VRAM col idx
+        ld a, 32                            ; a = 32
+        sub b                               ; a = 32 - first visisble VRAM col idx
+        ShiftLeftA 1                        ; a = (32 - first visisble VRAM col idx) * 2
+
+        ;; send to VDP
+
+        ld b, a                             ; b = (visisble col count - first visisble VRAM col idx) * 2
         ld c, VDP_DATA_PORT
-        ld b, 2
-        otir                                ; output 2 bytes starting at memory address hl to VDP
+        otir                                ; output b bytes starting at memory address hl to VDP
 
         ret
 .ends
