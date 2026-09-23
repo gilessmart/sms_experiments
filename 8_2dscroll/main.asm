@@ -118,9 +118,8 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
-        ; TODO - only draw the visible rows
         ; setup tilemap
-        ld a, 27*2                      ; a = row index * 2
+        ld a, 23*2                      ; a = row index * 2
         -:
             ; set VRAM write command / address
 
