@@ -590,7 +590,7 @@
         ld h, 0
         ld l, a                             ; hl = addr offset of first visible VRAM col
 
-        add hl, de                          ; hl = VDP write bits + addr of first tile of row + addr offset of first visible col
+        add hl, de                          ; hl = VDP write bits + addr of first tile to draw
 
         ld c, VDP_CTRL_PORT
         out (c), l
@@ -605,20 +605,19 @@
         ld b, 0
         ld c, a                             ; bc = target BG row addr offset from start of BGRowAddrs table
 
-        ld hl, BGRowAddrs                   ; hl = BGRowAddrs
-        add hl, bc                          ; hl = BGRowAddrs + target BG row addr offset from BGRowAddrs
+        ld hl, BGRowAddrs
+        add hl, bc                          ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
 
         ld e, (hl)
         inc hl
         ld d, (hl)                          ; de = addr of first tile of row in BG tilemap
 
         ld a, (FirstVisibleBGCol)           ; a = first visible BG col idx
-        add a, a                            ; a = addr offset of first visible BG col idx (relative to col 0)
-
         ld h, 0
-        ld l, a                             ; hl = addr offset of first visible BG col idx (relative to col 0)
+        ld l, a                             ; hl = first visible BG col idx
+        add hl, hl                          ; hl = addr offset of first visible BG col idx (relative to col 0)
 
-        add hl, de                          ; hl = addr of first tile of row in BG tilemap + addr offset of first visible BG col idx (relative to col 0)
+        add hl, de                          ; hl = addr of first tile in BG tilemap to draw
 
         ;; calculate how many bytes to send to the VDP
         ;; 2 for each tile from the row's first visible tile to the last tile in the same row (inclusive)
