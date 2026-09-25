@@ -493,7 +493,7 @@
             
             ; set VRAM write command / address
             ld hl, FirstVisibleVRAMRow
-            add (hl)                            ; a = FirstVisibleVRAMRow + row index
+            add a, (hl)                         ; a = FirstVisibleVRAMRow + row index
             cp 28                               ; if a - 28 carries (i.e. a < 28), c flag is set
             jr c, +                             ; skip ahead if c flag is set (i.e. a < 28)
                 sub 28
@@ -566,13 +566,17 @@
         jr c, +                             ; skip forward if VScrollDir < 1
             ld a, (VisibleRowCount)         ; a = visible row count
             sub a, 1                        ; a = visible row count - 1
-            ld b, a                         ; b = first visible VRAM row idx
+            ld b, a                         ; b = target row modifier
         +:
         
         ;; lookup the VRAM address of the first visible tile in the row 
         
         ld a, (FirstVisibleVRAMRow)         ; a = first visible VRAM row idx
-        add a, b                            ; a = target VRAM row idx
+        add a, b                            ; a = target VRAM row idx (can be >= 28)
+        cp 28
+        jr c, +                             ; jump forward if a < 28
+            sub a, 28                       
+        +:                                  ; a = target VRAM row idx
         add a, a                            ; a = target VRAM row addr offset from VRAMRowAddrs
 
         ld d, 0
