@@ -522,11 +522,10 @@
             ld a, d                             ; a = row index
             
             ld hl, FirstVisibleBGRow
-            add (hl)                            ; a = FirstVisibleBGRow + row index
-            add a                               ; a = (FirstVisibleBGRow + row index) * 2
-
+            add a, (hl)                         ; a = FirstVisibleBGRow + row index
             ld h, 0
-            ld l, a                             ; hl = (FirstVisibleBGRow + row index) * 2
+            ld l, a                             ; hl = FirstVisibleBGRow + row index
+            add hl, hl                          ; hl = (FirstVisibleBGRow + row index) * 2
 
             ld bc, BGRowAddrs
             add hl, bc                          ; hl = BGRowAddrs + (FirstVisibleBGRow + row index) * 2
@@ -604,10 +603,11 @@
         
         ld a, (FirstVisibleBGRow)           ; a = first visible BG row idx
         add a, b                            ; a = target BG row idx
-        add a, a                            ; a = target BG row addr offset from start of BGRowAddrs table
-
-        ld b, 0
-        ld c, a                             ; bc = target BG row addr offset from start of BGRowAddrs table
+        ld h, 0
+        ld l, a                             ; hl = target BG row idx
+        add hl, hl                          ; hl = target BG row addr offset from start of BGRowAddrs table
+        ld b, h
+        ld c, l                             ; bc = target BG row addr offset from start of BGRowAddrs table
 
         ld hl, BGRowAddrs
         add hl, bc                          ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
