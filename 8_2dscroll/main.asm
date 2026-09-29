@@ -34,8 +34,6 @@
     FirstVisibleVRAMCol: db
     FirstVisibleBGCol: db
     VisibleColCount: db
-    RedrawRow_BGRow: dw
-    RedrawRow_VDPRow: dw
     VScrollDir: db
 .ends
 
