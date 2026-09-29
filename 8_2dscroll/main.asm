@@ -326,9 +326,7 @@
         ex de, hl
 
         ; find max available scroll distance
-        ; TODO - revert
-        ; ld hl, (BG_ROWS - 24) * 8
-        ld hl, (28 - 24) * 8
+        ld hl, (BG_ROWS - 24) * 8
         or a        ; clear carry flag
         sbc hl, de
 
