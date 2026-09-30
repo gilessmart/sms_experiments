@@ -307,10 +307,10 @@
         sub a, l
         ld (VDPScrollY), a
 
-        ; reduce BGScrollX by clamped value
+        ; reduce BGScrollY by clamped value
         ex de, hl               ; hl = BGScrollY
         or a                    ; clear carry flag
-        sbc hl, de              ; hl = BGScrollX - scroll distance
+        sbc hl, de              ; hl = BGScrollY - scroll distance
         ld (BGScrollY), hl      ; BGScrollY = BGScrollY - scroll distance
 
         ret
