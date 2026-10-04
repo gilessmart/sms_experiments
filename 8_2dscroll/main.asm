@@ -3,8 +3,8 @@
 .define VSCROLL_DIR_DOWN 2
 
 .define SCROLL_INCREMENT 5  ; max = 8
-.define BG_ROWS 42          ; cols in background
-.define BG_COLS 194         ; cols in background
+.define BG_ROWS 64          ; rows in background
+.define BG_COLS 127         ; cols in background
 
 .memorymap
     defaultslot 0
