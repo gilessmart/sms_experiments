@@ -305,6 +305,9 @@
         ; reduce VDPScrollY by clamped value
         ld a, (VDPScrollY)
         sub a, l
+        jr nc, +                ; skip if no carry i.e. if a < 0
+            add a, 224
+        +:     
         ld (VDPScrollY), a
 
         ; reduce BGScrollY by clamped value
@@ -339,6 +342,10 @@
         ; increase VDPScrollY by clamped value
         ld a, (VDPScrollY)
         add a, l
+        cp 224
+        jr c, +                 ; skip if carry i.e. if a < 224
+            sub a, 224
+        +:
         ld (VDPScrollY), a
 
         ; increase BGScrollY by clamped value
