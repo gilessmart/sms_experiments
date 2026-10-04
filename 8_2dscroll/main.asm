@@ -633,7 +633,9 @@
         ld b, a                             ; b = first visible VRAM col idx
         ld a, 32                            ; a = 32
         sub b                               ; a = 32 - first visible VRAM col idx
-        add a, a                            ; a = (32 - first visible VRAM col idx) * 2
+        and 31                              ; a = (32 - first visible VRAM col idx) % 32
+        jr z, +                             ; if we're filling 0 tiles here, skip to drawing from the first tile in the row
+        add a, a                            ; a = ((32 - first visible VRAM col idx) % 32) * 2
 
         ;; send to VDP
 
@@ -641,15 +643,15 @@
         ld c, VDP_DATA_PORT
         otir                                ; output b bytes starting at memory address hl to VDP
 
-        ;; calculate how many tiles from the VDP row's first tile to the last visible tile in the same row (inclusive)
+        ;; calculate how many bytes to send to the VDP
+        ;; 2 for all the remaining visible tiles
 
-        ld a, (VisibleColCount)
-        ld b, a                             ; b = visible col count
-        ld a, (FirstVisibleVRAMCol)         ; a = first visible VRAM col idx
-        add a, b                            ; a = visible col count + first visible VRAM col idx
-        sub 32                              ; a = visible col count + first visible VRAM col idx - 32
-
-        ret z                               ; exit if no tiles to draw
+        +:
+        ld b, a                             ; b = ((32 - first visible VRAM col idx) % 32) * 2
+        ld a, (VisibleColCount)             ; a = visible col count
+        add a, a                            ; a = visible col count * 2
+        sub b                               ; a = (visible col count - ((32 - first visible VRAM col idx) % 32)) * 2
+        ret z                               ; exit if no bytes to draw
 
         ;; send to VDP
 
@@ -657,7 +659,6 @@
         out (c), e
         out (c), d                          ; output previously calculated VDP write bits + addr of first tile of VDP row
 
-        add a, a                            ; a = (visible col count + first visible VRAM col idx - 32) * 2
         ld b, a                             ; b = bytes of data to write
         ld c, VDP_DATA_PORT
         otir                                ; output b bytes starting at memory address hl to VDP
