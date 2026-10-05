@@ -75,7 +75,12 @@
     VDP_SetRegister 9
 
     call RedrawCol
-    call RedrawRow
+
+    ld a, (VScrollDir)
+    cp VSCROLL_DIR_NONE
+    jr z, +             ; skip if VScrollDir == VSCROLL_DIR_NONE
+        call RedrawRow
+    +:
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -556,12 +561,6 @@
         ret
 
     RedrawRow:
-        ;; if we've not scrolled, exit
-
-        ld a, (VScrollDir)
-        cp VSCROLL_DIR_NONE
-        ret z
-
         ;; calculate difference between first visible row and scroll dir row
 
         ld b, 0                             ; b = 0
