@@ -24,10 +24,10 @@
     BGScrollY: dw
     VDPScrollX: db
     VDPScrollY: db
-    RedrawCol_BGCol: dw
-    RedrawCol_VDPCol: dw
-    RedrawCol_VDPColAddrOffset: dw
-    RedrawCol_BGColAddrOffset: dw
+    RedrawCol_TargetBGColIdx: dw
+    RedrawCol_TargetVDPColIdx: dw
+    RedrawCol_TargetVDPColOffset: dw
+    RedrawCol_TargetBGColOffset: dw
     FirstVisibleVRAMRow: db
     FirstVisibleBGRow: db
     VisibleRowCount: db
@@ -184,8 +184,8 @@
         ld (BGScrollX), bc
         ld (BGScrollY), bc
         ld bc, 1
-        ld (RedrawCol_VDPCol), bc
-        ld (RedrawCol_BGCol), bc
+        ld (RedrawCol_TargetVDPColIdx), bc
+        ld (RedrawCol_TargetBGColIdx), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -392,7 +392,7 @@
         ShiftRightA 3
 
         ; set the VDP column to be redrawn
-        ld (RedrawCol_VDPCol), a
+        ld (RedrawCol_TargetVDPColIdx), a
 
         ; reduce BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
@@ -408,7 +408,7 @@
         ShiftRightHL 3
 
         ; set the background row to be redrawn
-        ld (RedrawCol_BGCol), hl
+        ld (RedrawCol_TargetBGColIdx), hl
 
         ret
     
@@ -446,7 +446,7 @@
         ShiftRightA 3
 
         ; set the VDP column to be redrawn
-        ld (RedrawCol_VDPCol), a
+        ld (RedrawCol_TargetVDPColIdx), a
 
         ; increase BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
@@ -461,7 +461,7 @@
         ShiftRightHL 3
 
         ; set the background row to be redrawn
-        ld (RedrawCol_BGCol), hl
+        ld (RedrawCol_TargetBGColIdx), hl
 
         ret
 
@@ -486,13 +486,13 @@
 .section "redraw_tiles"
     RedrawCol:
         ; calculate & store col offset
-        ld hl, (RedrawCol_VDPCol)
+        ld hl, (RedrawCol_TargetVDPColIdx)
         add hl, hl                              ; hl = col index * 2
-        ld (RedrawCol_VDPColAddrOffset), hl     ; RedrawCol_VDPColAddrOffset = col index * 2
+        ld (RedrawCol_TargetVDPColOffset), hl     ; RedrawCol_TargetVDPColOffset = col index * 2
 
-        ld hl, (RedrawCol_BGCol)
+        ld hl, (RedrawCol_TargetBGColIdx)
         add hl, hl                              ; hl = bg col index * 2
-        ld (RedrawCol_BGColAddrOffset), hl      ; RedrawCol_BGColAddrOffset = col index * 2
+        ld (RedrawCol_TargetBGColOffset), hl      ; RedrawCol_TargetBGColOffset = col index * 2
         
         ld a, 0
         -:
@@ -518,7 +518,7 @@
             inc hl
             ld b, (hl)                          ; bc = VDP write bits + row offset
         
-            ld hl, (RedrawCol_VDPColAddrOffset) ; hl = col offset
+            ld hl, (RedrawCol_TargetVDPColOffset) ; hl = col offset
 
             add hl, bc                          ; hl = VDP write bits + row offset + col offset
 
@@ -542,7 +542,7 @@
             inc hl
             ld b, (hl)                          ; bc = Tilemap + row offset
 
-            ld hl, (RedrawCol_BGColAddrOffset)  ; hl = RedrawCol_BGColAddrOffset
+            ld hl, (RedrawCol_TargetBGColOffset)  ; hl = RedrawCol_TargetBGColOffset
             add hl, bc                          ; hl = Tilemap + row offset + col offset
 
             ld c, VDP_DATA_PORT
