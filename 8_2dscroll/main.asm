@@ -20,14 +20,16 @@
 .endro
 
 .ramsection "main_state" slot 2
-    BGScrollX: dw
-    BGScrollY: dw
     VDPScrollX: db
     VDPScrollY: db
-    RedrawCol_TargetBGColIdx: dw
-    RedrawCol_TargetVDPColIdx: dw
-    RedrawCol_TargetVDPColOffset: dw
-    RedrawCol_TargetBGColOffset: dw
+    BGScrollX: dw
+    BGScrollY: dw
+    RedrawCol_TargetVDPColIdx: dw       ; idx of target col in VDP tilemap
+    RedrawCol_TargetBGColIdx: dw        ; idx of target col in BG tilemap
+    RedrawCol_TargetVDPColOffset: dw    ; bytes to target tile location in VDP tilemap from first tile in line
+    RedrawCol_TargetBGColOffset: dw     ; bytes to target tile location in BG tilemap from first tile in line
+    RedrawRow_TargetVDPRowIdx: dw       ; idx of target row in VDP tilemap
+    RedrawRow_TargetBGRowIdx: dw        ; idx of target row in BG tilemap
     FirstVisibleVRAMRow: db
     FirstVisibleBGRow: db
     VisibleRowCount: db
@@ -183,6 +185,8 @@
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
+        ld (RedrawRow_TargetVDPRowIdx), bc
+        ld (RedrawRow_TargetBGRowIdx), bc
         ld bc, 1
         ld (RedrawCol_TargetVDPColIdx), bc
         ld (RedrawCol_TargetBGColIdx), bc
@@ -234,13 +238,15 @@
             ex af, af'
         ++:
 
-        call CalculateVisibleTiles
+        call CalculateVisibleArea
+        
+        call PrepareRedrawRow
 
         jr MainLoop
 
     ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
     ; Clobbers: a, hl
-    CalculateVisibleTiles:
+    CalculateVisibleArea:
         ; calculate FirstVisibleVRAMRow
         ld a, (VDPScrollY)
         ShiftRightA 3
@@ -288,6 +294,45 @@
             ld (hl), 31                 ; a == 0
         ++:
 
+        ret
+
+    ; Sets "parameters" used during VBlank by the RefrawRow routine
+    ; Clobbers: a, b
+    PrepareRedrawRow:
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_NONE
+        ret z                               ; bail out if we're not scrolling up or down
+
+        jr c, +                             ; skip forward if VScrollDir < 1
+            ; VScrollDir == VSCROLL_DIR_UP
+
+            ld a, (VisibleRowCount)         ; a = visible row count
+            dec a                           ; a = visible row count - 1
+            ld b, a                         ; b = target row offset
+            
+            ld a, (FirstVisibleVRAMRow)
+            add a, b
+            cp 28
+            jr c, ++                        ; jump forward if a < 28
+                sub a, 28                   ; otherwise, subtract 28    
+            ++:
+            ld (RedrawRow_TargetVDPRowIdx), a
+            
+            ld a, (FirstVisibleBGRow)
+            add a, b
+            ld (RedrawRow_TargetBGRowIdx), a
+            
+            ret
+        +:
+
+        ; VScrollDir == VSCROLL_DIR_DOWN
+
+        ld a, (FirstVisibleVRAMRow)
+        ld (RedrawRow_TargetVDPRowIdx), a
+
+        ld a, (FirstVisibleBGRow)
+        ld (RedrawRow_TargetBGRowIdx), a
+        
         ret
 
     ; Decrements vertical scroll values
@@ -561,26 +606,11 @@
         
         ret
 
-    RedrawRow:
-        ;; calculate difference between first visible row and scroll dir row
-
-        ld b, 0                             ; b = 0
-        jr c, +                             ; skip forward if VScrollDir < 1
-            ld a, (VisibleRowCount)         ; a = visible row count
-            sub a, 1                        ; a = visible row count - 1
-            ld b, a                         ; b = target row modifier
-        +:
-        
+    RedrawRow:        
         ;; lookup the VRAM address of the first visible tile in the row 
         
-        ld a, (FirstVisibleVRAMRow)         ; a = first visible VRAM row idx
-        add a, b                            ; a = target VRAM row idx (can be >= 28)
-        cp 28
-        jr c, +                             ; jump forward if a < 28
-            sub a, 28                       
-        +:                                  ; a = target VRAM row idx
+        ld a, (RedrawRow_TargetVDPRowIdx)   ; a = target VRAM row idx
         add a, a                            ; a = target VRAM row addr offset from VRAMRowAddrs
-
         ld d, 0
         ld e, a                             ; de = target VRAM row addr offset from VRAMRowAddrs
 
@@ -604,10 +634,7 @@
         
         ;; lookup the BG address of the first visible tile in the row
         
-        ld a, (FirstVisibleBGRow)           ; a = first visible BG row idx
-        add a, b                            ; a = target BG row idx
-        ld h, 0
-        ld l, a                             ; hl = target BG row idx
+        ld hl, (RedrawRow_TargetBGRowIdx)   ; hl = target BG row idx
         add hl, hl                          ; hl = target BG row addr offset from start of BGRowAddrs table
         ld b, h
         ld c, l                             ; bc = target BG row addr offset from start of BGRowAddrs table
