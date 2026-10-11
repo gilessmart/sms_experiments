@@ -1,3 +1,6 @@
+.define HSCROLL_DIR_LEFT 0
+.define HSCROLL_DIR_NONE 1
+.define HSCROLL_DIR_RIGHT 2
 .define VSCROLL_DIR_UP 0
 .define VSCROLL_DIR_NONE 1
 .define VSCROLL_DIR_DOWN 2
@@ -36,6 +39,7 @@
     FirstVisibleVRAMCol: db
     FirstVisibleBGCol: db
     VisibleColCount: db
+    HScrollDir: db
     VScrollDir: db
 .ends
 
@@ -63,12 +67,12 @@
 .section "interrupt_handler" force
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
 
-    ; copy (inverted) X scroll value to VDP
+    ; invert scroll offset & copy to VDP
     ld a, (VDPScrollX)
-    ld l, a             ; l = VDPScrollX
+    ld l, a                 ; l = VDPScrollX
     ld a, 0
-    sub l               ; a = 256 - VDPScrollX
-    ld l, a             ; l = 256 - VDPScrollX
+    sub l                   ; a = 256 - VDPScrollX
+    ld l, a                 ; l = 256 - VDPScrollX
     VDP_SetRegister 8
 
     ; copy Y scroll value to VDP
@@ -76,13 +80,13 @@
     ld l, a
     VDP_SetRegister 9
 
-    call RedrawCol
+    ld a, (HScrollDir)
+    cp HSCROLL_DIR_NONE
+    call nz, RedrawCol      ; skip if HScrollDir == HSCROLL_DIR_NONE
 
     ld a, (VScrollDir)
     cp VSCROLL_DIR_NONE
-    jr z, +             ; skip if VScrollDir == VSCROLL_DIR_NONE
-        call RedrawRow
-    +:
+    call nz, RedrawRow      ; skip if VScrollDir == VSCROLL_DIR_NONE
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -176,6 +180,8 @@
         ld a, 1
         ld (FirstVisibleVRAMCol), a
         ld (FirstVisibleBGCol), a
+        ld a, HSCROLL_DIR_NONE
+        ld (HScrollDir), a
         ld a, VSCROLL_DIR_NONE
         ld (VScrollDir), a
         ld a, 24
@@ -224,10 +230,14 @@
         ++:
 
         ; scroll left / right
+        ld hl, HScrollDir
+        ld (hl), HSCROLL_DIR_NONE
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
                 call ScrollLeft
+                ld hl, HScrollDir
+                ld (hl), HSCROLL_DIR_LEFT
             ex af, af'
         jr ++
         +:
@@ -235,6 +245,8 @@
         jr nz, ++
             ex af, af'
                 call ScrollRight
+                ld hl, HScrollDir
+                ld (hl), HSCROLL_DIR_RIGHT
             ex af, af'
         ++:
 
@@ -528,7 +540,7 @@
         ret
 .ends
 
-.section "redraw_tiles"
+.section "redraw_background"
     RedrawCol:
         ; calculate & store col offset
         ld hl, (RedrawCol_TargetVDPColIdx)
