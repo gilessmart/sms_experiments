@@ -253,6 +253,7 @@
         call CalculateVisibleArea
         
         call PrepareRedrawRow
+        call PrepareRedrawCol
 
         jr MainLoop
 
@@ -308,7 +309,7 @@
 
         ret
 
-    ; Sets "parameters" used during VBlank by the RefrawRow routine
+    ; Sets "parameters" used during VBlank by the RedrawRow routine
     ; Clobbers: a, b
     PrepareRedrawRow:
         ld a, (VScrollDir)
@@ -316,7 +317,7 @@
         ret z                               ; bail out if we're not scrolling up or down
 
         jr c, +                             ; skip forward if VScrollDir < 1
-            ; VScrollDir == VSCROLL_DIR_UP
+            ; VScrollDir == VSCROLL_DIR_DOWN
 
             ld a, (VisibleRowCount)         ; a = visible row count
             dec a                           ; a = visible row count - 1
@@ -337,13 +338,52 @@
             ret
         +:
 
-        ; VScrollDir == VSCROLL_DIR_DOWN
+        ; VScrollDir == VSCROLL_DIR_UP
 
         ld a, (FirstVisibleVRAMRow)
         ld (RedrawRow_TargetVDPRowIdx), a
 
         ld a, (FirstVisibleBGRow)
         ld (RedrawRow_TargetBGRowIdx), a
+        
+        ret
+
+    ; Sets "parameters" used during VBlank by the RedrawCol routine
+    ; Clobbers: a, b
+    PrepareRedrawCol:
+        ld a, (HScrollDir)
+        cp HSCROLL_DIR_NONE
+        ret z                               ; bail out if we're not scrolling left or right
+
+        jr c, +                             ; skip forward if HScrollDir < 1
+            ; HScrollDir == HSCROLL_DIR_RIGHT
+
+            ld a, (VisibleColCount)         ; a = visible col count
+            dec a                           ; a = visible col count - 1
+            ld b, a                         ; b = target col offset
+            
+            ld a, (FirstVisibleVRAMCol)
+            add a, b
+            cp 32
+            jr c, ++                        ; jump forward if a < 32
+                sub a, 32                   ; otherwise, subtract 32    
+            ++:
+            ld (RedrawCol_TargetVDPColIdx), a
+            
+            ld a, (FirstVisibleBGCol)
+            add a, b
+            ld (RedrawCol_TargetBGColIdx), a
+            
+            ret
+        +:
+
+        ; HScrollDir == HSCROLL_DIR_LEFT
+
+        ld a, (FirstVisibleVRAMCol)
+        ld (RedrawCol_TargetVDPColIdx), a
+
+        ld a, (FirstVisibleBGCol)
+        ld (RedrawCol_TargetBGColIdx), a
         
         ret
 
@@ -442,30 +482,11 @@
         sub a, l
         ld (VDPScrollX), a
 
-        ; find the horizontal offset of the first vertical line of pixels now on the viewport
-        add a, 8
-
-        ; (integer) divide by 8 to get column number
-        ShiftRightA 3
-
-        ; set the VDP column to be redrawn
-        ld (RedrawCol_TargetVDPColIdx), a
-
         ; reduce BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
         or a                    ; clear carry flag
         sbc hl, de              ; hl = BGScrollX - scroll distance
         ld (BGScrollX), hl      ; BGScrollX = BGScrollX - scroll distance
-
-        ; find the vertical offset of the first vertical line of the background that we want to display
-        ld bc, 8
-        add hl, bc
-
-        ; integer divide by 8 to get row number
-        ShiftRightHL 3
-
-        ; set the background row to be redrawn
-        ld (RedrawCol_TargetBGColIdx), hl
 
         ret
     
@@ -496,29 +517,10 @@
         add a, l
         ld (VDPScrollX), a
 
-        ; find the horizontal offset of the last vertical line of pixels now on the viewport
-        add a, 255
-
-        ; (integer) divide by 8 to get column number
-        ShiftRightA 3
-
-        ; set the VDP column to be redrawn
-        ld (RedrawCol_TargetVDPColIdx), a
-
         ; increase BGScrollX by clamped value
         ex de, hl               ; hl = BGScrollX
         add hl, de              ; hl = BGScrollX + scroll distance
         ld (BGScrollX), hl      ; BGScrollX = BGScrollX + scroll distance
-
-        ; find the horizontal offset of the first vertical line of the background that we want to display
-        ld bc, 255
-        add hl, bc
-
-        ; divide by 8 to get row number
-        ShiftRightHL 3
-
-        ; set the background row to be redrawn
-        ld (RedrawCol_TargetBGColIdx), hl
 
         ret
 
