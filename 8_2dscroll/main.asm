@@ -553,7 +553,8 @@
         add hl, hl                                  ; hl = bg col index * 2
         ld (RedrawCol_TargetBGColOffset), hl        ; RedrawCol_TargetBGColOffset = col index * 2
         
-        ld a, 0
+        ld a, (VisibleRowCount)
+        dec a
         -:
             ; copy the counter
             ld d, a
@@ -612,11 +613,9 @@
             ; reinstate the counter
             ld a, d
         
-            ; loop if counter != VisibleRowCount
-            inc a
-            ld hl, VisibleRowCount
-            cp (hl)
-            jr nz, -
+            sub a, 1
+            ; loop if counter hasn't carried
+            jr nc, -
         
         ret
 
