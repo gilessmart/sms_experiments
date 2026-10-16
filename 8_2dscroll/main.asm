@@ -542,6 +542,12 @@
         ret
 .ends
 
+.ramsection "redraw_state" slot 2
+    VDPAddr: dw
+    BGAddr: dw
+.ends
+
+
 .section "redraw_background"
     RedrawCol:
         ; calculate & store col offset
@@ -552,6 +558,8 @@
         ld hl, (RedrawCol_TargetBGColIdx)
         add hl, hl                                  ; hl = bg col index * 2
         ld (RedrawCol_TargetBGColOffset), hl        ; RedrawCol_TargetBGColOffset = col index * 2
+
+        ;; draw the first set of rows ;;
         
         ; calculate number of rows to draw between the first visible row and last row in the VDP
         ; MIN(visible row count, 28 - first visible VRAM row idx)
@@ -629,76 +637,92 @@
             ; loop if counter hasn't carried
             jr nc, -
 
+        ;; draw the remaining rows ;;
+
         ; calculate number of rows to draw between the first row and last visible row in the VDP
-        ; MIN(0, first visible VRAM row idx + visible row count - 28)
+        
         ld a, (VisibleRowCount)
         ld b, a                                     ; b = visible row count
         ld a, (FirstVisibleVRAMRow)                 ; a = first visible VRAM row idx
         add a, b                                    ; a = first visible VRAM row idx + visible row count
         sub 28                                      ; a = first visible VRAM row idx + visible row count - 28
-
-        ; bail if nothing to draw        
-        ret z
-        ret c
-
-        ; draw those rows
-        dec a                                       ; start with row at final index
-        -:
-            ; copy the counter
-            ld d, a
-            
-            ; set VRAM write command / address
-            add a                                   ; a = row offset
-            ld h, 0
-            ld l, a                                 ; hl = row offset
-
-            ld bc, VRAMRowAddrs
-            add hl, bc                              ; hl = VRAMRowAddrs + row offset (from VRAMRowAddrs)
-
-            ld c, (hl)
-            inc hl
-            ld b, (hl)                              ; bc = VDP write bits + row offset (from start of VRAM tilemap)
         
-            ld hl, (RedrawCol_TargetVDPColOffset)   ; hl = col offset
+        ret z                                       ;
+        ret c                                       ; bail if nothing to draw        
 
-            add hl, bc                              ; hl = VDP write bits + row offset + col offset
+        dec a                                       ; start with final index
+
+        ; calculate write bits | initial VRAM addr
+        
+        ld d, a                                     ; backup counter
+
+        add a                                       ; a = row offset
+        ld h, 0
+        ld l, a                                     ; hl = row offset
+
+        ld bc, VRAMRowAddrs
+        add hl, bc                                  ; hl = VRAMRowAddrs + row offset (from VRAMRowAddrs)
+
+        ld c, (hl)
+        inc hl
+        ld b, (hl)                                  ; bc = VDP write bits + row offset (from start of VRAM tilemap)
+    
+        ld hl, (RedrawCol_TargetVDPColOffset)       ; hl = col offset
+        add hl, bc                                  ; hl = VDP write bits + row offset + col offset
+        ld (VDPAddr), hl
+
+        ld a, d                                     ; reinstate counter
+
+        ; calculate initial BG addr
+
+        ld hl, FirstVisibleBGRow
+        add a, (hl)
+        add a, e                                    ; a = row index
+
+        ld h, 0
+        ld l, a                                     ; hl = row index
+        add hl, hl                                  ; hl = row offset
+
+        ld bc, BGRowAddrs
+        add hl, bc                                  ; hl = BGRowAddrs + row offset (from BGRowAddrs)
+
+        ld c, (hl)
+        inc hl
+        ld b, (hl)                                  ; bc = Tilemap + row offset (from Tilemap)
+
+        ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
+        add hl, bc                                  ; hl = Tilemap + row offset + col offset
+        ld (BGAddr), hl
+
+        ld a, d                                     ; reinstate counter
+        
+        -:
+            ld hl, (VDPAddr)
 
             ld c, VDP_CTRL_PORT
             out (c), l
             out (c), h                              ; output hl to VDP
 
-            ; set VRAM data
-            ld a, d                                 ; reinstate counter
+            ld bc, 64
+            or a                                    ; clear carry flag
+            sbc hl, bc
+            ld (VDPAddr), hl
             
-            ld hl, FirstVisibleBGRow
-            add a, (hl)
-            add a, e                                ; a = row index
-
-            ld h, 0
-            ld l, a                                 ; hl = row index
-            add hl, hl                              ; hl = row offset
-
-            ld bc, BGRowAddrs
-            add hl, bc                              ; hl = BGRowAddrs + row offset (from BGRowAddrs)
-
-            ld c, (hl)
-            inc hl
-            ld b, (hl)                              ; bc = Tilemap + row offset (from Tilemap)
-
-            ld hl, (RedrawCol_TargetBGColOffset)    ; hl = col offset
-            add hl, bc                              ; hl = Tilemap + row offset + col offset
+            ld hl, (BGAddr)
 
             ld c, VDP_DATA_PORT
             ld b, 2
             otir                                    ; output 2 bytes starting at memory address hl to VDP
 
-            ; reinstate the counter
-            ld a, d
+            ld hl, (BGAddr)
+            ld bc, BG_COLS * 2
+            or a                                    ; clear carry flag
+            sbc hl, bc
+            ld (BGAddr), hl
         
             sub a, 1
             ; loop if counter hasn't carried
             jr nc, -
-
         
         ret
 
