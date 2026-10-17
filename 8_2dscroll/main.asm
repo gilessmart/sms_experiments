@@ -699,8 +699,7 @@
             ld b, 2
             otir                                    ; output 2 bytes starting at memory address hl to VDP
 
-            ld hl, (BGAddr)
-            ld bc, BG_COLS * 2
+            ld bc, BG_COLS * 2 - 2
             add hl, bc
             ld (BGAddr), hl
         
