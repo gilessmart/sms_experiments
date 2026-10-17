@@ -680,7 +680,7 @@
 
         ld (BGAddr), hl
 
-        ld a, d                                     ; restore row count
+        ld b, d                                     ; restore row count
 
         ld hl, (VDPAddr)
         ld c, VDP_CTRL_PORT
@@ -691,21 +691,16 @@
             ld de, BG_COLS * 2 - 2
         exx
 
-        dec a                                       ; start with final index
         -:
             out (c), l
-            out (c), h                              ; output hl to VDP
+            out (c), h
             add hl, de
-            
             exx
                 ld b, 2
-                otir                                    ; output 2 bytes starting at memory address hl to VDP
+                otir
                 add hl, de
             exx
-        
-            sub a, 1
-            ; loop if counter hasn't carried
-            jr nc, -
+            djnz -
         
         ret
 
