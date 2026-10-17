@@ -681,27 +681,27 @@
         ld (BGAddr), hl
 
         ld a, d                                     ; restore row count
+
+        ld hl, (VDPAddr)
+        ld c, VDP_CTRL_PORT
+        ld de, 64
+        exx
+            ld hl, (BGAddr)
+            ld c, VDP_DATA_PORT
+            ld de, BG_COLS * 2 - 2
+        exx
+
         dec a                                       ; start with final index
         -:
-            ld hl, (VDPAddr)
-
-            ld c, VDP_CTRL_PORT
             out (c), l
             out (c), h                              ; output hl to VDP
-
-            ld bc, 64
-            add hl, bc
-            ld (VDPAddr), hl
+            add hl, de
             
-            ld hl, (BGAddr)
-
-            ld c, VDP_DATA_PORT
-            ld b, 2
-            otir                                    ; output 2 bytes starting at memory address hl to VDP
-
-            ld bc, BG_COLS * 2 - 2
-            add hl, bc
-            ld (BGAddr), hl
+            exx
+                ld b, 2
+                otir                                    ; output 2 bytes starting at memory address hl to VDP
+                add hl, de
+            exx
         
             sub a, 1
             ; loop if counter hasn't carried
