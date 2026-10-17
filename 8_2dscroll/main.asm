@@ -545,6 +545,7 @@
 .ramsection "redraw_state" slot 2
     VDPAddr: dw
     BGAddr: dw
+    RowCount: dw
 .ends
 
 
@@ -650,13 +651,14 @@
         ret z                                       ;
         ret c                                       ; bail if nothing to draw        
 
-        ld d, a                                     ; backup row count
+        ld (RowCount), a
 
         ; calculate write bits | initial VRAM addr
 
         ld hl, (VRAMRowAddrs)                       ; hl = VRAMRowAddrs
         ld bc, (RedrawCol_TargetVDPColOffset)       ; bc = col offset
         add hl, bc                                  ; hl = VDP write bits + col offset
+
         ld (VDPAddr), hl
 
         ; calculate initial BG addr
@@ -680,8 +682,6 @@
 
         ld (BGAddr), hl
 
-        ld b, d                                     ; restore row count
-
         ld hl, (VDPAddr)
         ld c, VDP_CTRL_PORT
         ld de, 64
@@ -691,6 +691,8 @@
             ld de, BG_COLS * 2 - 2
         exx
 
+        ld a, (RowCount)
+        ld b, a
         -:
             out (c), l
             out (c), h
