@@ -650,33 +650,18 @@
         ret z                                       ;
         ret c                                       ; bail if nothing to draw        
 
-        dec a                                       ; start with final index
+        ld d, a                                     ; backup row count
 
         ; calculate write bits | initial VRAM addr
-        
-        ld d, a                                     ; backup counter
 
-        add a                                       ; a = row offset
-        ld h, 0
-        ld l, a                                     ; hl = row offset
-
-        ld bc, VRAMRowAddrs
-        add hl, bc                                  ; hl = VRAMRowAddrs + row offset (from VRAMRowAddrs)
-
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = VDP write bits + row offset (from start of VRAM tilemap)
-    
-        ld hl, (RedrawCol_TargetVDPColOffset)       ; hl = col offset
-        add hl, bc                                  ; hl = VDP write bits + row offset + col offset
+        ld hl, (VRAMRowAddrs)                       ; hl = VRAMRowAddrs
+        ld bc, (RedrawCol_TargetVDPColOffset)       ; bc = col offset
+        add hl, bc                                  ; hl = VDP write bits + col offset
         ld (VDPAddr), hl
-
-        ld a, d                                     ; reinstate counter
 
         ; calculate initial BG addr
 
-        ld hl, FirstVisibleBGRow
-        add a, (hl)
+        ld a, (FirstVisibleBGRow)
         add a, e                                    ; a = row index
 
         ld h, 0
@@ -692,10 +677,11 @@
 
         ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
+
         ld (BGAddr), hl
 
-        ld a, d                                     ; reinstate counter
-        
+        ld a, d                                     ; restore row count
+        dec a                                       ; start with final index
         -:
             ld hl, (VDPAddr)
 
@@ -704,8 +690,7 @@
             out (c), h                              ; output hl to VDP
 
             ld bc, 64
-            or a                                    ; clear carry flag
-            sbc hl, bc
+            add hl, bc
             ld (VDPAddr), hl
             
             ld hl, (BGAddr)
@@ -716,8 +701,7 @@
 
             ld hl, (BGAddr)
             ld bc, BG_COLS * 2
-            or a                                    ; clear carry flag
-            sbc hl, bc
+            add hl, bc
             ld (BGAddr), hl
         
             sub a, 1
