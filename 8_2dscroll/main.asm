@@ -543,9 +543,9 @@
 .ends
 
 .ramsection "redraw_state" slot 2
-    VDPAddr: dw
-    BGAddr: dw
-    RowCount: dw
+    RedrawCol_ColGrp2_FirstVDPAddr: dw
+    RedrawCol_ColGrp2_FirstBGAddr: dw
+    RedrawCol_ColGrp2_RowCount: dw
 .ends
 
 
@@ -651,7 +651,7 @@
         ret z                                       ;
         ret c                                       ; bail if nothing to draw        
 
-        ld (RowCount), a
+        ld (RedrawCol_ColGrp2_RowCount), a
 
         ; calculate write bits | initial VRAM addr
 
@@ -659,7 +659,7 @@
         ld bc, (RedrawCol_TargetVDPColOffset)       ; bc = col offset
         add hl, bc                                  ; hl = VDP write bits + col offset
 
-        ld (VDPAddr), hl
+        ld (RedrawCol_ColGrp2_FirstVDPAddr), hl
 
         ; calculate initial BG addr
 
@@ -680,18 +680,18 @@
         ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
 
-        ld (BGAddr), hl
+        ld (RedrawCol_ColGrp2_FirstBGAddr), hl
 
-        ld hl, (VDPAddr)
+        ld hl, (RedrawCol_ColGrp2_FirstVDPAddr)
         ld c, VDP_CTRL_PORT
         ld de, 64
         exx
-            ld hl, (BGAddr)
+            ld hl, (RedrawCol_ColGrp2_FirstBGAddr)
             ld c, VDP_DATA_PORT
             ld de, BG_COLS * 2 - 2
         exx
 
-        ld a, (RowCount)
+        ld a, (RedrawCol_ColGrp2_RowCount)
         ld b, a
         -:
             out (c), l
