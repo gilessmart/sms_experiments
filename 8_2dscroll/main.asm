@@ -619,6 +619,8 @@
 
         ld (RedrawCol_ColGrp1_FirstBGAddr), hl
 
+        ; write to VDP
+
         ld hl, (RedrawCol_ColGrp1_FirstVDPAddr)
         ld c, VDP_CTRL_PORT
         ld de, 64
@@ -629,21 +631,17 @@
         exx
 
         ld a, (RedrawCol_ColGrp1_RowCount)
-        dec a                                       ; start with row at final index
+        ld b, a
         -:
             out (c), l
             out (c), h
             add hl, de
-
             exx
                 ld b, 2
                 otir
                 add hl, de
             exx
-        
-            sub a, 1
-            ; loop if counter hasn't carried
-            jr nc, -
+            djnz -
 
         ;; draw the remaining rows ;;
 
