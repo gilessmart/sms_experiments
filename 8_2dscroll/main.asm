@@ -581,16 +581,10 @@
 
         ld (RedrawCol_ColGrp1_RowCount), a
 
-        dec a                                       ; start with row at final index
-        
         ; calculate write bits | initial VRAM addr
 
-        ld d, a                                     ; store counter
-
-        ld hl, FirstVisibleVRAMRow
-        add a, (hl)                                 ; a = row index
+        ld a, (FirstVisibleVRAMRow)                 ; a = row index
         add a                                       ; a = row offset
-
         ld h, 0
         ld l, a                                     ; hl = row offset
 
@@ -608,11 +602,7 @@
 
         ; calculate initial BG addr
 
-        ld a, d                                     ; reinstate counter
-        
-        ld hl, FirstVisibleBGRow
-        add a, (hl)                                 ; a = row index
-
+        ld a, (FirstVisibleBGRow)                   ; a = row index
         ld h, 0
         ld l, a                                     ; hl = row index
         add hl, hl                                  ; hl = row offset
@@ -629,7 +619,8 @@
 
         ld (RedrawCol_ColGrp1_BGAddr), hl
 
-        ld a, d                                     ; reinstate counter
+        ld a, (RedrawCol_ColGrp1_RowCount)
+        dec a                                       ; start with row at final index
         -:
             ld hl, (RedrawCol_ColGrp1_VDPAddr)
 
@@ -638,8 +629,7 @@
             out (c), h                              ; output hl to VDP
 
             ld bc, 64
-            or a
-            sbc hl, bc
+            add hl, bc
             ld (RedrawCol_ColGrp1_VDPAddr), hl
 
             ld hl, (RedrawCol_ColGrp1_BGAddr)
@@ -648,9 +638,8 @@
             ld b, 2
             otir                                    ; output 2 bytes starting at memory address hl to VDP
 
-            ld bc, BG_COLS * 2 + 2
-            or a
-            sbc hl, bc
+            ld bc, BG_COLS * 2 - 2
+            add hl, bc
             ld (RedrawCol_ColGrp1_BGAddr), hl
         
             sub a, 1
