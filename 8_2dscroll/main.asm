@@ -543,8 +543,8 @@
 .ends
 
 .ramsection "redraw_state" slot 2
-    RedrawCol_ColGrp1_VDPAddr: dw
-    RedrawCol_ColGrp1_BGAddr: dw
+    RedrawCol_ColGrp1_FirstVDPAddr: dw
+    RedrawCol_ColGrp1_FirstBGAddr: dw
     RedrawCol_ColGrp1_RowCount: db
     RedrawCol_ColGrp2_FirstVDPAddr: dw
     RedrawCol_ColGrp2_FirstBGAddr: dw
@@ -598,7 +598,7 @@
         ld hl, (RedrawCol_TargetVDPColOffset)       ; hl = col offset
         add hl, bc                                  ; hl = VDP write bits + row offset + col offset
 
-        ld (RedrawCol_ColGrp1_VDPAddr), hl
+        ld (RedrawCol_ColGrp1_FirstVDPAddr), hl
 
         ; calculate initial BG addr
 
@@ -617,30 +617,29 @@
         ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
 
-        ld (RedrawCol_ColGrp1_BGAddr), hl
+        ld (RedrawCol_ColGrp1_FirstBGAddr), hl
+
+        ld hl, (RedrawCol_ColGrp1_FirstVDPAddr)
+        ld c, VDP_CTRL_PORT
+        ld de, 64
+        exx
+            ld hl, (RedrawCol_ColGrp1_FirstBGAddr)
+            ld c, VDP_DATA_PORT
+            ld de, BG_COLS * 2 - 2
+        exx
 
         ld a, (RedrawCol_ColGrp1_RowCount)
         dec a                                       ; start with row at final index
         -:
-            ld hl, (RedrawCol_ColGrp1_VDPAddr)
-
-            ld c, VDP_CTRL_PORT
             out (c), l
-            out (c), h                              ; output hl to VDP
+            out (c), h
+            add hl, de
 
-            ld bc, 64
-            add hl, bc
-            ld (RedrawCol_ColGrp1_VDPAddr), hl
-
-            ld hl, (RedrawCol_ColGrp1_BGAddr)
-
-            ld c, VDP_DATA_PORT
-            ld b, 2
-            otir                                    ; output 2 bytes starting at memory address hl to VDP
-
-            ld bc, BG_COLS * 2 - 2
-            add hl, bc
-            ld (RedrawCol_ColGrp1_BGAddr), hl
+            exx
+                ld b, 2
+                otir
+                add hl, de
+            exx
         
             sub a, 1
             ; loop if counter hasn't carried
