@@ -545,7 +545,7 @@
 .ramsection "redraw_state" slot 2
     RedrawCol_ColGrp2_FirstVDPAddr: dw
     RedrawCol_ColGrp2_FirstBGAddr: dw
-    RedrawCol_ColGrp2_RowCount: dw
+    RedrawCol_ColGrp2_RowCount: db
 .ends
 
 
