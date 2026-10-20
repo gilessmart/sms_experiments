@@ -253,10 +253,11 @@
         jr MainLoop
 
     ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
-    ; Clobbers: a, hl
+    ; Clobbers: a, bc, hl
     CalculateVisibleArea:
         ; calculate FirstVisibleVRAMRow
         ld a, (VDPScrollY)
+        ld d, a                                     ; store VDPScroll value for calculating VisibleRowCount
         ShiftRightA 3
         ld (FirstVisibleVRAMRow), a
 
@@ -267,18 +268,19 @@
         ld (FirstVisibleBGRow), a
 
         ; calculate VisibleRowCount
-        ld hl, VisibleRowCount
-        ld a, (VDPScrollY)
-        and 7                           ; a = fine scroll value
-        jr z, +
-            ld (hl), 25                 ; a != 0
+        ld a, d
+        and 7                                       ; a = fine scroll value
+        jr z, +                                     ; skip forward if a = 0
+            ld a, 25
         jr ++
         +:
-            ld (hl), 24                 ; a == 0
+            ld a, 24
         ++:
+        ld (VisibleRowCount), a
 
         ; calculate FirstVisibleVRAMCol
         ld a, (VDPScrollX)
+        ld d, a                                     ; store VDPScroll value for calculating VisibleColCount
         add a, 8
         ShiftRightA 3
         ld (FirstVisibleVRAMCol), a
@@ -292,15 +294,15 @@
         ld (FirstVisibleBGCol), a
 
         ; calculate VisibleColCount
-        ld hl, VisibleColCount
-        ld a, (VDPScrollX)
-        and 7                           ; a = fine scroll value
-        jr z, +
-            ld (hl), 32                 ; a != 0
+        ld a, d
+        and 7                                       ; a = fine scroll value
+        jr z, +                                     ; skip forward if a = 0
+            ld a, 32
         jr ++
         +:
-            ld (hl), 31                 ; a == 0
+            ld a, 31
         ++:
+        ld (VisibleColCount), a
 
         ret
 
