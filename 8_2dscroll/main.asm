@@ -27,8 +27,6 @@
     VDPScrollY: db
     BGScrollX: dw
     BGScrollY: dw
-    RedrawCol_TargetVDPColIdx: dw       ; idx of target col in VDP tilemap
-    RedrawCol_TargetBGColIdx: dw        ; idx of target col in BG tilemap
     RedrawCol_TargetVDPColOffset: dw    ; bytes to target tile location in VDP tilemap from first tile in line
     RedrawCol_TargetBGColOffset: dw     ; bytes to target tile location in BG tilemap from first tile in line
     RedrawRow_TargetVDPRowIdx: dw       ; idx of target row in VDP tilemap
@@ -193,9 +191,6 @@
         ld (BGScrollY), bc
         ld (RedrawRow_TargetVDPRowIdx), bc
         ld (RedrawRow_TargetBGRowIdx), bc
-        ld bc, 1
-        ld (RedrawCol_TargetVDPColIdx), bc
-        ld (RedrawCol_TargetBGColIdx), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -358,13 +353,14 @@
     ; Clobbers: a, b, c, hl
     PrepareRedrawCol:
         ld a, (HScrollDir)
-        cp HSCROLL_DIR_NONE
+        cp HSCROLL_DIR_NONE                         ; check scroll direction
+
         ret z                                       ; bail out if we're not scrolling left or right
 
-        ;; calculate the target VDP & BG cols ;;
+        ;; calculate target VDP & BG col indices ;;
 
         jr c, +                                     ; skip forward if HScrollDir < 1
-            ; HScrollDir == HSCROLL_DIR_RIGHT
+            ; scrolling right
 
             ld a, (VisibleColCount)                 ; a = visible col count
             dec a                                   ; a = visible col count - 1
@@ -372,34 +368,32 @@
             
             ld a, (FirstVisibleVRAMCol)
             add a, b
-            cp 32
+            cp 32                                   ; apply modulo 32
             jr c, ++                                ; jump forward if a < 32
                 sub a, 32                           ; otherwise, subtract 32    
             ++:
-            ld (RedrawCol_TargetVDPColIdx), a
+            ld c, a                                 ; c = target VRAM col index
             
             ld a, (FirstVisibleBGCol)
-            add a, b
-            ld (RedrawCol_TargetBGColIdx), a
+            add a, b                                ; a = target BG col index
             
             jr ++
         +:
-            ; HScrollDir == HSCROLL_DIR_LEFT
-
+            ; scrolling left
             ld a, (FirstVisibleVRAMCol)
-            ld (RedrawCol_TargetVDPColIdx), a
-
-            ld a, (FirstVisibleBGCol)
-            ld (RedrawCol_TargetBGColIdx), a
+            ld c, a                                 ; c = target VRAM col index
+            ld a, (FirstVisibleBGCol)               ; a = target BG col index
         ++:
 
-        ; calculate col offsets for target cols
+        ;; calculate col offsets for target cols ;;
 
-        ld hl, (RedrawCol_TargetVDPColIdx)
+        ld h, 0
+        ld l, c                                     ; hl = target VRAM col index
         add hl, hl                                  ; hl = col index * 2
         ld (RedrawCol_TargetVDPColOffset), hl       ; RedrawCol_TargetVDPColOffset = col index * 2
 
-        ld hl, (RedrawCol_TargetBGColIdx)
+        ld h, 0
+        ld l, a                                     ; hl = target BG col index
         add hl, hl                                  ; hl = bg col index * 2
         ld (RedrawCol_TargetBGColOffset), hl        ; RedrawCol_TargetBGColOffset = col index * 2
 
