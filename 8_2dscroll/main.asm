@@ -22,6 +22,12 @@
     banks 2
 .endro
 
+.struct RedrawColRowGroup
+    FirstVDPAddr: dw
+    FirstBGAddr: dw
+    RowCount: db
+.endst
+
 .ramsection "main_state" slot 2
     VDPScrollX: db
     VDPScrollY: db
@@ -41,6 +47,8 @@
     LastVisibleBGCol: db
     HScrollDir: db
     VScrollDir: db
+    RedrawCol_Grp1: instanceof RedrawColRowGroup
+    RedrawCol_Grp2: instanceof RedrawColRowGroup
 .ends
 
 .bank 0
@@ -369,13 +377,7 @@
         
         ret
 
-    ; Sets the values used during VBlank by the RedrawCol routine:
-    ;   RedrawCol_ColGrp1_FirstVDPAddr
-    ;   RedrawCol_ColGrp1_FirstBGAddr
-    ;   RedrawCol_ColGrp1_RowCount
-    ;   RedrawCol_ColGrp2_FirstVDPAddr
-    ;   RedrawCol_ColGrp2_FirstBGAddr
-    ;   RedrawCol_ColGrp2_RowCount
+    ; Sets the values used during VBlank by the RedrawCol routine
     ; Clobbers: a, b, c, hl
     PrepareRedrawCol:
         ld a, (HScrollDir)
@@ -425,7 +427,7 @@
             ld a, c                                 ; a = visible row count
         +:                                          ; a = MIN(visible row count, 28 - first visible VRAM row idx)
 
-        ld (RedrawCol_ColGrp1_RowCount), a
+        ld (RedrawCol_Grp1.RowCount), a
 
         ; calculate write bits | initial VRAM addr
 
@@ -444,7 +446,7 @@
         ld hl, (RedrawCol_TargetVDPColOffset)       ; hl = col offset
         add hl, bc                                  ; hl = VDP write bits + row offset + col offset
 
-        ld (RedrawCol_ColGrp1_FirstVDPAddr), hl
+        ld (RedrawCol_Grp1.FirstVDPAddr), hl
 
         ; calculate initial BG addr
 
@@ -463,7 +465,7 @@
         ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
 
-        ld (RedrawCol_ColGrp1_FirstBGAddr), hl
+        ld (RedrawCol_Grp1.FirstBGAddr), hl
 
         ;; calculate VRAM addr, BG addr & row count for the second set of rows ;;
 
@@ -478,7 +480,7 @@
         jr c, NoColGrp2                             ; number of rows to draw is negative
         jr z, NoColGrp2                             ; number of rows to draw is zero
 
-        ld (RedrawCol_ColGrp2_RowCount), a
+        ld (RedrawCol_Grp2.RowCount), a
 
         ; calculate write bits | initial VRAM addr
 
@@ -486,12 +488,12 @@
         ld bc, (RedrawCol_TargetVDPColOffset)       ; bc = col offset
         add hl, bc                                  ; hl = VDP write bits + col offset
 
-        ld (RedrawCol_ColGrp2_FirstVDPAddr), hl
+        ld (RedrawCol_Grp2.FirstVDPAddr), hl
 
         ; calculate initial BG addr
 
         ld a, (FirstVisibleBGRow)
-        ld hl, RedrawCol_ColGrp1_RowCount
+        ld hl, RedrawCol_Grp1.RowCount
         add a, (hl)                                 ; a = first visible row index + rows previously drawn
 
         ld h, 0
@@ -508,13 +510,13 @@
         ld hl, (RedrawCol_TargetBGColOffset)        ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
 
-        ld (RedrawCol_ColGrp2_FirstBGAddr), hl
+        ld (RedrawCol_Grp2.FirstBGAddr), hl
         
         ret
 
     NoColGrp2:
         ld a, 0
-        ld (RedrawCol_ColGrp2_RowCount), a          ; RedrawCol_ColGrp2_RowCount = 0
+        ld (RedrawCol_Grp2.RowCount), a          ; RedrawCol_Grp2.RowCount = 0
         ret
 
     ; Decrements vertical scroll values
@@ -672,29 +674,20 @@
         ret
 .ends
 
-.ramsection "redraw_state" slot 2
-    RedrawCol_ColGrp1_FirstVDPAddr: dw
-    RedrawCol_ColGrp1_FirstBGAddr: dw
-    RedrawCol_ColGrp1_RowCount: db
-    RedrawCol_ColGrp2_FirstVDPAddr: dw
-    RedrawCol_ColGrp2_FirstBGAddr: dw
-    RedrawCol_ColGrp2_RowCount: db
-.ends
-
 .section "redraw_background"
     RedrawCol:
         ; write first col group
 
-        ld hl, (RedrawCol_ColGrp1_FirstVDPAddr)
+        ld hl, (RedrawCol_Grp1.FirstVDPAddr)
         ld c, VDP_CTRL_PORT
         ld de, 64
         exx
-            ld hl, (RedrawCol_ColGrp1_FirstBGAddr)
+            ld hl, (RedrawCol_Grp1.FirstBGAddr)
             ld c, VDP_DATA_PORT
             ld de, BG_COLS * 2 - 2
         exx
 
-        ld a, (RedrawCol_ColGrp1_RowCount)
+        ld a, (RedrawCol_Grp1.RowCount)
         ld b, a
         -:
             out (c), l
@@ -709,13 +702,13 @@
 
         ; write the second col group
 
-        ld a, (RedrawCol_ColGrp2_RowCount)
+        ld a, (RedrawCol_Grp2.RowCount)
         cp 0
         ret z
 
-        ld hl, (RedrawCol_ColGrp2_FirstVDPAddr)
+        ld hl, (RedrawCol_Grp2.FirstVDPAddr)
         exx
-            ld hl, (RedrawCol_ColGrp2_FirstBGAddr)
+            ld hl, (RedrawCol_Grp2.FirstBGAddr)
         exx
         
         ld b, a
