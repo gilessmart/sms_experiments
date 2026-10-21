@@ -473,16 +473,10 @@
         ld b, a                                     ; b = visible row count
         ld a, (FirstVisibleVRAMRow)                 ; a = first visible VRAM row idx
         add a, b                                    ; a = first visible VRAM row idx + visible row count
-        sub 28                                      ; a = first visible VRAM row idx + visible row count - 28
-
-        jr c, +
-        jr z, +
-        jr ++
-        +:
-            ld a, 0
-            ld (RedrawCol_ColGrp2_RowCount), a      ; RedrawCol_ColGrp2_RowCount = 0
-            ret                                     ; nothing to draw so bail
-        ++:      
+        sub 28                                      ; a = first visible VRAM row idx + visible row count - 29
+        
+        jr c, NoColGrp2                             ; number of rows to draw is negative
+        jr z, NoColGrp2                             ; number of rows to draw is zero
 
         ld (RedrawCol_ColGrp2_RowCount), a
 
@@ -516,6 +510,11 @@
 
         ld (RedrawCol_ColGrp2_FirstBGAddr), hl
         
+        ret
+
+    NoColGrp2:
+        ld a, 0
+        ld (RedrawCol_ColGrp2_RowCount), a          ; RedrawCol_ColGrp2_RowCount = 0
         ret
 
     ; Decrements vertical scroll values
