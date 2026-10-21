@@ -477,8 +477,8 @@
         add a, b                                    ; a = first visible VRAM row idx + visible row count
         sub 28                                      ; a = first visible VRAM row idx + visible row count - 29
         
-        jr c, NoColGrp2                             ; number of rows to draw is negative
-        jr z, NoColGrp2                             ; number of rows to draw is zero
+        jr c, Grp2Empty                             ; number of rows to draw is negative
+        jr z, Grp2Empty                             ; number of rows to draw is zero
 
         ld (RedrawCol_Grp2.RowCount), a
 
@@ -514,7 +514,7 @@
         
         ret
 
-    NoColGrp2:
+    Grp2Empty:
         ld a, 0
         ld (RedrawCol_Grp2.RowCount), a          ; RedrawCol_Grp2.RowCount = 0
         ret
