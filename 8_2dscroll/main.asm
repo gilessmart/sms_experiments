@@ -34,9 +34,11 @@
     FirstVisibleVRAMRow: db
     FirstVisibleBGRow: db
     VisibleRowCount: db
-    FirstVisibleVRAMCol: db
-    FirstVisibleBGCol: db
     VisibleColCount: db
+    FirstVisibleVRAMCol: db
+    LastVisibleVRAMCol: db
+    FirstVisibleBGCol: db
+    LastVisibleBGCol: db
     HScrollDir: db
     VScrollDir: db
 .ends
@@ -182,6 +184,9 @@
         ld (HScrollDir), a
         ld a, VSCROLL_DIR_NONE
         ld (VScrollDir), a
+        ld a, 23
+        ld (LastVisibleVRAMCol), a
+        ld (LastVisibleBGCol), a
         ld a, 24
         ld (VisibleRowCount), a
         ld a, 31
@@ -255,6 +260,8 @@
     ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
     ; Clobbers: a, bc, hl
     CalculateVisibleArea:
+        ;; Rows ;;
+
         ; calculate FirstVisibleVRAMRow
         ld a, (VDPScrollY)
         ld d, a                                     ; store VDPScroll value for calculating VisibleRowCount
@@ -278,23 +285,11 @@
         ++:
         ld (VisibleRowCount), a
 
-        ; calculate FirstVisibleVRAMCol
-        ld a, (VDPScrollX)
-        ld d, a                                     ; store VDPScroll value for calculating VisibleColCount
-        add a, 8
-        ShiftRightA 3
-        ld (FirstVisibleVRAMCol), a
-
-        ; calculate FirstVisibleBGCol
-        ld hl, (BGScrollX)
-        ld bc, 8
-        add hl, bc
-        ShiftRightHL 3
-        ld a, l
-        ld (FirstVisibleBGCol), a
+        ;; Cols ;;
 
         ; calculate VisibleColCount
-        ld a, d
+        ld a, (VDPScrollX)
+        ld b, a                                     ; store VDPScrollX for calculating FirstVisibleVRAMCol
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 32
@@ -303,6 +298,35 @@
             ld a, 31
         ++:
         ld (VisibleColCount), a
+        ld c, a                                     ; store VisibleColCount for calculating last visible cols
+
+        ; calculate FirstVisibleVRAMCol
+        ld a, b                                     ; a = VDPScrollX
+        add a, 8
+        ShiftRightA 3
+        ld (FirstVisibleVRAMCol), a
+
+        ; calculate LastVisibleVRAMCol
+        add a, c                                    ; a = FirstVisibleVRAMCol + VisibleColCount
+        dec a                                       ; a = FirstVisibleVRAMCol + VisibleColCount - 1
+        cp 32                                       ; apply modulo 32..
+        jr c, ++                                    ; jump forward if a < 32
+            sub a, 32                               ; otherwise, subtract 32    
+        ++:
+        ld (LastVisibleVRAMCol), a
+
+        ; calculate FirstVisibleBGCol
+        ld hl, (BGScrollX)
+        ld de, 8
+        add hl, de
+        ShiftRightHL 3
+        ld a, l
+        ld (FirstVisibleBGCol), a
+
+        ; calculate LastVisibleBGCol
+        add a, c                                    ; a = FirstVisibleBGCol + VisibleColCount
+        dec a                                       ; a = FirstVisibleBGCol + VisibleColCount - 1
+        ld (LastVisibleBGCol), a        
 
         ret
 
@@ -363,23 +387,10 @@
 
         jr c, +                                     ; skip forward if HScrollDir < 1
             ; scrolling right
-
-            ld a, (VisibleColCount)                 ; a = visible col count
-            dec a                                   ; a = visible col count - 1
-            ld b, a                                 ; b = target col offset
-            
-            ld a, (FirstVisibleVRAMCol)
-            add a, b
-            cp 32                                   ; apply modulo 32
-            jr c, ++                                ; jump forward if a < 32
-                sub a, 32                           ; otherwise, subtract 32    
-            ++:
+            ld a, (LastVisibleVRAMCol)
             ld c, a                                 ; c = target VRAM col index
-            
-            ld a, (FirstVisibleBGCol)
-            add a, b                                ; a = target BG col index
-            
-            jr ++
+            ld a, (LastVisibleBGCol)                ; a = target BG col index
+        jr ++
         +:
             ; scrolling left
             ld a, (FirstVisibleVRAMCol)
