@@ -375,7 +375,7 @@
         ld (RedrawRow_TargetBGRowIdx), a
         
         ret
-
+    
     ; Sets the values used during VBlank by the RedrawCol routine
     ; Clobbers: a, b, c, hl
     PrepRedrawCol:
@@ -404,15 +404,14 @@
         ;; calculate VRAM addr, BG addr & row count for the first set of rows ;;
 
         ; calculate number of rows to draw between the first visible row and last row in the VDP
-        ld a, (FirstVisibleVRAMRow)                 
-        ld b, a                                     ; b = first visible VRAM row idx
         ld a, (VisibleRowCount)
-        ld c, a                                     ; c = visible row count
+        ld b, a                                     ; b = visible row count
         ld a, 28                                    ; a = 28
-        sub a, b                                    ; a = 28 - first visible VRAM row idx
-        cp c
-        jr c, +                                     ; skip forward if VisisbleRowCount (c) > (28 - first visible VRAM row idx) (a)
-            ld a, c                                 ; a = visible row count
+        ld hl, FirstVisibleVRAMRow
+        sub a, (hl)                                 ; a = 28 - first visible VRAM row idx
+        cp b
+        jr c, +                                     ; skip forward if VisisbleRowCount (b) > (28 - first visible VRAM row idx) (a)
+            ld a, b                                 ; a = visible row count
         +:                                          ; a = MIN(visible row count, 28 - first visible VRAM row idx)
         ld (RedrawCol_Grp1.RowCount), a
 
@@ -452,10 +451,9 @@
         ;; calculate VRAM addr, BG addr & row count for the second set of rows ;;
 
         ; calculate number of rows to draw between the first row and last visible row in the VDP
-        ld a, (VisibleRowCount)
-        ld b, a                                     ; b = visible row count
-        ld a, (FirstVisibleVRAMRow)                 ; a = first visible VRAM row idx
-        add a, b                                    ; a = first visible VRAM row idx + visible row count
+        ld a, (VisibleRowCount)                     ; a = visible row count
+        ld hl, FirstVisibleVRAMRow
+        add a, (hl)                                 ; a = first visible VRAM row idx + visible row count
         sub 28                                      ; a = first visible VRAM row idx + visible row count - 29
         jr c, Grp2Empty                             ; number of rows to draw is negative
         jr z, Grp2Empty                             ; number of rows to draw is zero
