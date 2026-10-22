@@ -460,7 +460,6 @@
         ld (RedrawCol_Grp2.RowCount), a
 
         ; calculate write bits | initial VRAM addr
-
         ld a, d                                     ; a = VDP col index
         add a, a                                    ; a = VDP col offset (from VRAMRowAddrs)
         ld b, 0
@@ -470,7 +469,6 @@
         ld (RedrawCol_Grp2.FirstVDPAddr), hl
 
         ; calculate initial BG addr
-
         ld a, (FirstVisibleBGRow)
         ld hl, RedrawCol_Grp1.RowCount
         add a, (hl)                                 ; a = first visible row index + rows previously drawn
@@ -487,7 +485,6 @@
         add hl, hl                                  ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
         ld (RedrawCol_Grp2.FirstBGAddr), hl
-        
         ret
 
     Grp2Empty:
