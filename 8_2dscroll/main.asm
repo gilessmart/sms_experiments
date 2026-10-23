@@ -45,7 +45,6 @@
     LastVisibleBGCol: db
     HScrollDir: db
     VScrollDir: db
-    PrepRedrawCol_TargetBGColOffset: dw             ; bytes to target tile location in BG tilemap from first tile in line
     RedrawCol_Grp1: instanceof RedrawColRowGroup
     RedrawCol_Grp2: instanceof RedrawColRowGroup
 .ends
