@@ -22,7 +22,15 @@
     banks 2
 .endro
 
-.struct RedrawColRowGroup
+.struct RedrawRowParamsStruct
+    BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
+    VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the row
+    ByteCount1: db      ; number of bytes to draw from VDPAddr1
+    VDPAddr2: dw        ; addr in the VRAM tilemap of the *first* tile in the row
+    ByteCount2: db      ; number of bytes to draw from VDPAddr2
+.endst
+
+.struct RedrawColGroup
     FirstVDPAddr: dw
     FirstBGAddr: dw
     RowCount: db
@@ -45,8 +53,9 @@
     LastVisibleBGCol: db
     HScrollDir: db
     VScrollDir: db
-    RedrawCol_Grp1: instanceof RedrawColRowGroup
-    RedrawCol_Grp2: instanceof RedrawColRowGroup
+    RedrawRowParams: instanceof RedrawRowParamsStruct
+    RedrawCol_Grp1: instanceof RedrawColGroup
+    RedrawCol_Grp2: instanceof RedrawColGroup
 .ends
 
 .bank 0
@@ -340,38 +349,92 @@
     ; Clobbers: a, b
     PrepRedrawRow:
         ld a, (VScrollDir)
-        cp VSCROLL_DIR_NONE
-        ret z                               ; bail out if we're not scrolling up or down
+        cp VSCROLL_DIR_NONE                         ; checkk scroll direction
 
-        jr c, +                             ; skip forward if VScrollDir < 1
+        ret z                                       ; bail out if we're not scrolling up or down
+
+        ;; calculate target VDP & BG row indices
+
+        jr c, +                                     ; skip forward if VScrollDir < 1
             ; VScrollDir == VSCROLL_DIR_DOWN
 
-            ld a, (VisibleRowCount)         ; a = visible row count
-            dec a                           ; a = visible row count - 1
-            ld b, a                         ; b = target row offset
+            ld a, (VisibleRowCount)                 ; a = visible row count
+            dec a                                   ; a = visible row count - 1
+            ld b, a                                 ; b = target row offset
             
             ld a, (FirstVisibleVRAMRow)
             add a, b
             cp 28
-            jr c, ++                        ; jump forward if a < 28
-                sub a, 28                   ; otherwise, subtract 28    
+            jr c, ++                                ; jump forward if a < 28
+                sub a, 28                           ; otherwise, subtract 28    
             ++:
             ld (RedrawRow_TargetVDPRowIdx), a
             
             ld a, (FirstVisibleBGRow)
             add a, b
             ld (RedrawRow_TargetBGRowIdx), a
-            
-            ret
+        jr ++
         +:
+            ; VScrollDir == VSCROLL_DIR_UP
 
-        ; VScrollDir == VSCROLL_DIR_UP
+            ld a, (FirstVisibleVRAMRow)
+            ld (RedrawRow_TargetVDPRowIdx), a
 
-        ld a, (FirstVisibleVRAMRow)
-        ld (RedrawRow_TargetVDPRowIdx), a
+            ld a, (FirstVisibleBGRow)
+            ld (RedrawRow_TargetBGRowIdx), a
+        ++:
 
-        ld a, (FirstVisibleBGRow)
-        ld (RedrawRow_TargetBGRowIdx), a
+        ; calculate addr of first visible tile in the row in the BG tilemap
+        ld hl, (RedrawRow_TargetBGRowIdx)           ; hl = target BG row idx
+        add hl, hl                                  ; hl = target BG row addr offset from BGRowAddrs
+        ld bc, BGRowAddrs
+        add hl, bc                                  ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
+        ld c, (hl)
+        inc hl
+        ld b, (hl)                                  ; bc = addr of first tile of row in BG tilemap
+        ld a, (FirstVisibleBGCol)                   ; a = first visible BG col idx
+        ld h, 0
+        ld l, a                                     ; hl = first visible BG col idx
+        add hl, hl                                  ; hl = addr offset of first visible BG col idx from start of row
+        add hl, bc                                  ; hl = addr of first visible tile in BG tilemap
+        ld (RedrawRowParams.BGAddr), hl
+        
+        ; calculate VRAM tilemap addresses (inc. write bits):
+        ; addr of first tile in row, addr of first *visible* tile in row
+        ld a, (RedrawRow_TargetVDPRowIdx)           ; a = target VRAM row idx
+        add a, a                                    ; a = target VRAM row addr offset from VRAMRowAddrs
+        ld b, 0
+        ld c, a                                     ; bc = target VRAM row addr offset from VRAMRowAddrs
+        ld hl, VRAMRowAddrs
+        add hl, bc                                  ; hl = &VRAMRowAddrs + target VRAM row addr offset from VRAMRowAddrs
+        ld c, (hl)
+        inc hl
+        ld b, (hl)                                  ; bc = VDP write bits + addr of first tile of row
+        ld (RedrawRowParams.VDPAddr2), bc
+        ld a, (FirstVisibleVRAMCol)                 ; a = first visible VRAM col idx
+        add a, a                                    ; a = addr offset of first visible VRAM col
+        ld h, 0
+        ld l, a                                     ; hl = addr offset of first visible VRAM col
+        add hl, bc                                  ; hl = VDP write bits + addr of first tile to draw
+        ld (RedrawRowParams.VDPAddr1), hl
+
+        ; calculate how many bytes to send to the VDP
+        ; ..when drawing from first visible tile in row to last tile in row
+        ld a, (FirstVisibleVRAMCol)
+        ld b, a                                     ; b = first visible VRAM col idx
+        ld a, 32                                    ; a = 32
+        sub b                                       ; a = 32 - first visible VRAM col idx
+        and 31                                      ; a = (32 - first visible VRAM col idx) % 32
+        add a, a                                    ; a = ((32 - first visible VRAM col idx) % 32) * 2
+            ld (RedrawRowParams.ByteCount1), a
+
+        ; calculate how many bytes to send to the VDP
+        ; ..when drawing from first tile in row to last visible tile in row
+        ld b, a                                     ; b = ((32 - first visible VRAM col idx) % 32) * 2
+        ld a, (VisibleColCount)                     ; a = visible col count
+        add a, a                                    ; a = visible col count * 2
+        sub b                                       ; a = (visible col count - ((32 - first visible VRAM col idx) % 32)) * 2
+            ld (RedrawRowParams.ByteCount2), a
         
         ret
     
@@ -400,7 +463,7 @@
             ld e, a                                 ; e = target BG col index
         ++:
 
-        ;; calculate VRAM addr, BG addr & row count for the first set of rows ;;
+        ;; calculate first VRAM addr, first BG addr & row count for the first set of rows to draw ;;
 
         ; calculate number of rows to draw between the first visible row and last row in the VDP
         ld a, (VisibleRowCount)
@@ -447,7 +510,7 @@
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
         ld (RedrawCol_Grp1.FirstBGAddr), hl
 
-        ;; calculate VRAM addr, BG addr & row count for the second set of rows ;;
+        ;; calculate first VRAM addr, first BG addr & row count for the second set of rows to draw ;;
 
         ; calculate number of rows to draw between the first row and last visible row in the VDP
         ld a, (VisibleRowCount)                     ; a = visible row count
@@ -698,88 +761,33 @@
         ret
 
     RedrawRow:        
-        ;; lookup the VRAM address of the first visible tile in the row 
+        ld hl, (RedrawRowParams.BGAddr)
+
+        ld a, (RedrawRowParams.ByteCount1)
+        cp 0
+        jr z, +
+            ld de, (RedrawRowParams.VDPAddr1)
+            ld c, VDP_CTRL_PORT
+            out (c), e
+            out (c), d
         
-        ld a, (RedrawRow_TargetVDPRowIdx)   ; a = target VRAM row idx
-        add a, a                            ; a = target VRAM row addr offset from VRAMRowAddrs
-        ld d, 0
-        ld e, a                             ; de = target VRAM row addr offset from VRAMRowAddrs
-
-        ld hl, VRAMRowAddrs
-        add hl, de                          ; hl = &VRAMRowAddrs + target VRAM row addr offset from VRAMRowAddrs
-        
-        ld e, (hl)
-        inc hl
-        ld d, (hl)                          ; de = VDP write bits + addr of first tile of row
-
-        ld a, (FirstVisibleVRAMCol)         ; a = first visible VRAM col idx
-        add a, a                            ; a = addr offset of first visible VRAM col
-        ld h, 0
-        ld l, a                             ; hl = addr offset of first visible VRAM col
-
-        add hl, de                          ; hl = VDP write bits + addr of first tile to draw
-
-        ld c, VDP_CTRL_PORT
-        out (c), l
-        out (c), h                          ; output hl to VDP
-        
-        ;; lookup the BG address of the first visible tile in the row
-        
-        ld hl, (RedrawRow_TargetBGRowIdx)   ; hl = target BG row idx
-        add hl, hl                          ; hl = target BG row addr offset from start of BGRowAddrs table
-        ld b, h
-        ld c, l                             ; bc = target BG row addr offset from start of BGRowAddrs table
-
-        ld hl, BGRowAddrs
-        add hl, bc                          ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
-
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                          ; bc = addr of first tile of row in BG tilemap
-
-        ld a, (FirstVisibleBGCol)           ; a = first visible BG col idx
-        ld h, 0
-        ld l, a                             ; hl = first visible BG col idx
-        add hl, hl                          ; hl = addr offset of first visible BG col idx (relative to col 0)
-
-        add hl, bc                          ; hl = addr of first tile in BG tilemap to draw
-
-        ;; calculate how many bytes to send to the VDP
-        ;; 2 for each tile from the row's first visible tile to the last tile in the same row (inclusive)
-        
-        ld a, (FirstVisibleVRAMCol)
-        ld b, a                             ; b = first visible VRAM col idx
-        ld a, 32                            ; a = 32
-        sub b                               ; a = 32 - first visible VRAM col idx
-        and 31                              ; a = (32 - first visible VRAM col idx) % 32
-        jr z, +                             ; if we're filling 0 tiles here, skip to drawing from the first tile in the row
-        add a, a                            ; a = ((32 - first visible VRAM col idx) % 32) * 2
-
-        ;; send to VDP
-
-        ld b, a                             ; b = (visible col count - first visible VRAM col idx) * 2
+            ld b, a
         ld c, VDP_DATA_PORT
-        otir                                ; output b bytes starting at memory address hl to VDP
-
-        ;; calculate how many bytes to send to the VDP
-        ;; 2 for all the remaining visible tiles
-
+            otir
         +:
-        ld b, a                             ; b = ((32 - first visible VRAM col idx) % 32) * 2
-        ld a, (VisibleColCount)             ; a = visible col count
-        add a, a                            ; a = visible col count * 2
-        sub b                               ; a = (visible col count - ((32 - first visible VRAM col idx) % 32)) * 2
-        ret z                               ; exit if no bytes to draw
 
-        ;; send to VDP
+        ld a, (RedrawRowParams.ByteCount2)
+        cp 0
+        ret z
 
+        ld de, (RedrawRowParams.VDPAddr2)
         ld c, VDP_CTRL_PORT
         out (c), e
-        out (c), d                          ; output previously calculated VDP write bits + addr of first tile of VDP row
+        out (c), d
 
-        ld b, a                             ; b = bytes of data to write
+        ld b, a
         ld c, VDP_DATA_PORT
-        otir                                ; output b bytes starting at memory address hl to VDP
+        otir
 
         ret
 .ends
