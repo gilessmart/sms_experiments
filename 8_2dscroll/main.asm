@@ -290,7 +290,10 @@
             ld a, 24
         ++:
         ld (VisibleRowCount), a
-        ld c, a                                     ; store VisibleRowCount for calculating last visible rows
+
+        ; store difference between last and first row for calculating last rows
+        dec a                                       
+        ld c, a
 
         ; calculate FirstVisibleVRAMRow
         ld a, b
@@ -298,8 +301,7 @@
         ld (FirstVisibleVRAMRow), a
 
         ; calculate LastVisibleVRAMRow
-        add a, c                                    ; a = FirstVisibleVRAMRow + VisibleRowCount
-        dec a                                       ; a = FirstVisibleVRAMRow + VisibleRowCount - 1
+        add a, c                                    ; a = FirstVisibleVRAMRow + difference
         cp 28                                       ; apply modulo 28..
         jr c, +                                     ; jump forward if a < 28
             sub a, 28                               ; otherwise, subtract 28    
@@ -313,8 +315,7 @@
         ld (FirstVisibleBGRow), a
 
         ; calculate LastVisibleBGRow
-        add a, c                                    ; a = FirstVisibleBGRow + VisibleRowCount
-        dec a                                       ; a = FirstVisibleBGRow + VisibleRowCount - 1
+        add a, c                                    ; a = FirstVisibleBGRow + difference
         ld (LastVisibleBGRow), a
 
         ;; Cols ;;
@@ -330,7 +331,10 @@
             ld a, 31
         ++:
         ld (VisibleColCount), a
-        ld c, a                                     ; store VisibleColCount for calculating last visible cols
+
+        ; store difference between last and first row for calculating last cols
+        dec a                                       
+        ld c, a
 
         ; calculate FirstVisibleVRAMCol
         ld a, b                                     ; a = VDPScrollX
@@ -339,8 +343,7 @@
         ld (FirstVisibleVRAMCol), a
 
         ; calculate LastVisibleVRAMCol
-        add a, c                                    ; a = FirstVisibleVRAMCol + VisibleColCount
-        dec a                                       ; a = FirstVisibleVRAMCol + VisibleColCount - 1
+        add a, c                                    ; a = FirstVisibleVRAMCol + difference
         and 31                                      ; apply modulo 32
         ld (LastVisibleVRAMCol), a
 
@@ -353,8 +356,7 @@
         ld (FirstVisibleBGCol), a
 
         ; calculate LastVisibleBGCol
-        add a, c                                    ; a = FirstVisibleBGCol + VisibleColCount
-        dec a                                       ; a = FirstVisibleBGCol + VisibleColCount - 1
+        add a, c                                    ; a = FirstVisibleBGCol + difference
         ld (LastVisibleBGCol), a        
 
         ret
