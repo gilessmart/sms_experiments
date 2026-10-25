@@ -41,8 +41,6 @@
     VDPScrollY: db
     BGScrollX: dw
     BGScrollY: dw
-    RedrawRow_TargetVDPRowIdx: dw                   ; idx of target row in VDP tilemap
-    RedrawRow_TargetBGRowIdx: dw                    ; idx of target row in BG tilemap
     VisibleRowCount: db
     FirstVisibleVRAMRow: db
     LastVisibleVRAMRow: db
@@ -211,8 +209,6 @@
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
-        ld (RedrawRow_TargetVDPRowIdx), bc
-        ld (RedrawRow_TargetBGRowIdx), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -692,27 +688,25 @@
 
         ret z                                       ; bail out if we're not scrolling up or down
 
-        ;; calculate target VDP & BG row indices
-
-        ; TODO - stop using RedrawRow_TargetVDPRowIdx & RedrawRow_TargetBGRowIdx
-
+        ; calculate target VDP & BG row indices
         jr c, +                                     ; skip forward if VScrollDir < 1
             ; VScrollDir == VSCROLL_DIR_DOWN
             ld a, (LastVisibleVRAMRow)
-            ld (RedrawRow_TargetVDPRowIdx), a
+            ld d, a
             ld a, (LastVisibleBGRow)
-            ld (RedrawRow_TargetBGRowIdx), a
+            ld e, a
         jr ++
         +:
             ; VScrollDir == VSCROLL_DIR_UP
             ld a, (FirstVisibleVRAMRow)
-            ld (RedrawRow_TargetVDPRowIdx), a
+            ld d, a
             ld a, (FirstVisibleBGRow)
-            ld (RedrawRow_TargetBGRowIdx), a
+            ld e, a
         ++:
 
         ; calculate addr of first visible tile in the row in the BG tilemap
-        ld hl, (RedrawRow_TargetBGRowIdx)           ; hl = target BG row idx
+        ld h, 0
+        ld l, e                                     ; hl = target BG row idx
         add hl, hl                                  ; hl = target BG row addr offset from BGRowAddrs
         ld bc, BGRowAddrs
         add hl, bc                                  ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
@@ -728,7 +722,7 @@
         
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in row, addr of first *visible* tile in row
-        ld a, (RedrawRow_TargetVDPRowIdx)           ; a = target VRAM row idx
+        ld a, d                                     ; a = target VRAM row idx
         add a, a                                    ; a = target VRAM row addr offset from VRAMRowAddrs
         ld b, 0
         ld c, a                                     ; bc = target VRAM row addr offset from VRAMRowAddrs
