@@ -275,7 +275,7 @@
         jr MainLoop
 
     ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
-    ; Clobbers: a, bc, hl
+    ; Clobbers: a, bc, de, hl
     CalculateVisibleArea:
         ;; Rows ;;
 
@@ -441,7 +441,7 @@
         ret
     
     ; Sets the values used during VBlank by the RedrawCol routine
-    ; Clobbers: a, b, c, hl
+    ; Clobbers: a, bc, de, hl
     PrepRedrawCol:
         ld a, (HScrollDir)
         cp HSCROLL_DIR_NONE                         ; check scroll direction
