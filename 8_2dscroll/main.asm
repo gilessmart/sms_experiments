@@ -324,10 +324,7 @@
         ; calculate LastVisibleVRAMCol
         add a, c                                    ; a = FirstVisibleVRAMCol + VisibleColCount
         dec a                                       ; a = FirstVisibleVRAMCol + VisibleColCount - 1
-        cp 32                                       ; apply modulo 32..
-        jr c, ++                                    ; jump forward if a < 32
-            sub a, 32                               ; otherwise, subtract 32    
-        ++:
+        and 31                                      ; apply modulo 32
         ld (LastVisibleVRAMCol), a
 
         ; calculate FirstVisibleBGCol
