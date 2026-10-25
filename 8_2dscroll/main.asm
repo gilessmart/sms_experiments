@@ -43,9 +43,11 @@
     BGScrollY: dw
     RedrawRow_TargetVDPRowIdx: dw                   ; idx of target row in VDP tilemap
     RedrawRow_TargetBGRowIdx: dw                    ; idx of target row in BG tilemap
-    FirstVisibleVRAMRow: db
-    FirstVisibleBGRow: db
     VisibleRowCount: db
+    FirstVisibleVRAMRow: db
+    LastVisibleVRAMRow: db
+    FirstVisibleBGRow: db
+    LastVisibleBGRow: db
     VisibleColCount: db
     FirstVisibleVRAMCol: db
     LastVisibleVRAMCol: db
@@ -277,20 +279,9 @@
     CalculateVisibleArea:
         ;; Rows ;;
 
-        ; calculate FirstVisibleVRAMRow
-        ld a, (VDPScrollY)
-        ld d, a                                     ; store VDPScroll value for calculating VisibleRowCount
-        ShiftRightA 3
-        ld (FirstVisibleVRAMRow), a
-
-        ; calculate FirstVisibleBGRow
-        ld hl, (BGScrollY)
-        ShiftRightHL 3
-        ld a, l
-        ld (FirstVisibleBGRow), a
-
         ; calculate VisibleRowCount
-        ld a, d
+        ld a, (VDPScrollY)
+        ld b, a                                     ; store VDPScroll value for calculating VisibleRowCount
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 25
@@ -299,6 +290,32 @@
             ld a, 24
         ++:
         ld (VisibleRowCount), a
+        ld c, a                                     ; store VisibleRowCount for calculating last visible rows
+
+        ; calculate FirstVisibleVRAMRow
+        ld a, b
+        ShiftRightA 3
+        ld (FirstVisibleVRAMRow), a
+
+        ; calculate LastVisibleVRAMRow
+        add a, c                                    ; a = FirstVisibleVRAMRow + VisibleRowCount
+        dec a                                       ; a = FirstVisibleVRAMRow + VisibleRowCount - 1
+        cp 28                                       ; apply modulo 28..
+        jr c, +                                     ; jump forward if a < 28
+            sub a, 28                               ; otherwise, subtract 28    
+        +:
+        ld (LastVisibleVRAMRow), a
+
+        ; calculate FirstVisibleBGRow
+        ld hl, (BGScrollY)
+        ShiftRightHL 3
+        ld a, l
+        ld (FirstVisibleBGRow), a
+
+        ; calculate LastVisibleBGRow
+        add a, c                                    ; a = FirstVisibleBGRow + VisibleRowCount
+        dec a                                       ; a = FirstVisibleBGRow + VisibleRowCount - 1
+        ld (LastVisibleBGRow), a
 
         ;; Cols ;;
 
@@ -343,7 +360,7 @@
         ret
 
     ; Sets values used during VBlank by the RedrawRow routine
-    ; Clobbers: a, b
+    ; Clobbers: a, bc, hl
     PrepRedrawRow:
         ld a, (VScrollDir)
         cp VSCROLL_DIR_NONE                         ; checkk scroll direction
@@ -354,29 +371,15 @@
 
         jr c, +                                     ; skip forward if VScrollDir < 1
             ; VScrollDir == VSCROLL_DIR_DOWN
-
-            ld a, (VisibleRowCount)                 ; a = visible row count
-            dec a                                   ; a = visible row count - 1
-            ld b, a                                 ; b = target row offset
-            
-            ld a, (FirstVisibleVRAMRow)
-            add a, b
-            cp 28
-            jr c, ++                                ; jump forward if a < 28
-                sub a, 28                           ; otherwise, subtract 28    
-            ++:
+            ld a, (LastVisibleVRAMRow)
             ld (RedrawRow_TargetVDPRowIdx), a
-            
-            ld a, (FirstVisibleBGRow)
-            add a, b
+            ld a, (LastVisibleBGRow)
             ld (RedrawRow_TargetBGRowIdx), a
         jr ++
         +:
             ; VScrollDir == VSCROLL_DIR_UP
-
             ld a, (FirstVisibleVRAMRow)
             ld (RedrawRow_TargetVDPRowIdx), a
-
             ld a, (FirstVisibleBGRow)
             ld (RedrawRow_TargetBGRowIdx), a
         ++:
