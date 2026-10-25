@@ -30,10 +30,12 @@
     ByteCount2: db      ; number of bytes to draw from VDPAddr2
 .endst
 
-.struct RedrawColGroup
-    FirstVDPAddr: dw
-    FirstBGAddr: dw
-    RowCount: db
+.struct RedrawColParamsStruct
+    BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
+    VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the col
+    RowCount1: db       ; number of tiles to draw from VDPAddr1
+    VDPAddr2: dw        ; addr in the VRAM tilemap of the *first* tile in the col
+    RowCount2: db       ; number of tiles to draw from VDPAddr2
 .endst
 
 .ramsection "main_state" slot 2
@@ -54,8 +56,7 @@
     HScrollDir: db
     VScrollDir: db
     RedrawRowParams: instanceof RedrawRowParamsStruct
-    RedrawCol_Grp1: instanceof RedrawColGroup
-    RedrawCol_Grp2: instanceof RedrawColGroup
+    RedrawColParams: instanceof RedrawColParamsStruct
 .ends
 
 .bank 0
@@ -550,7 +551,7 @@
         jr c, +                                     ; skip forward if VisisbleRowCount (b) > (28 - first visible VRAM row idx) (a)
             ld a, b                                 ; a = visible row count
         +:                                          ; a = MIN(visible row count, 28 - first visible VRAM row idx)
-        ld (RedrawCol_Grp1.RowCount), a
+        ld (RedrawColParams.RowCount1), a
 
         ; calculate write bits | initial VRAM addr
         ld a, (FirstVisibleVRAMRow)                 ; a = row index
@@ -567,7 +568,7 @@
         ld h, 0
         ld l, a                                     ; hl = col offset
         add hl, bc                                  ; hl = VDP write bits + row offset + col offset
-        ld (RedrawCol_Grp1.FirstVDPAddr), hl
+        ld (RedrawColParams.VDPAddr1), hl
 
         ; calculate initial BG addr
         ld a, (FirstVisibleBGRow)                   ; a = row index
@@ -583,7 +584,7 @@
         ld l, e                                     ; hl = col index
         add hl, hl                                  ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
-        ld (RedrawCol_Grp1.FirstBGAddr), hl
+        ld (RedrawColParams.BGAddr), hl
 
         ;; calculate first VRAM addr, first BG addr & row count for the second set of rows to draw ;;
 
@@ -594,7 +595,7 @@
         sub 28                                      ; a = first visible VRAM row idx + visible row count - 29
         jr c, Grp2Empty                             ; number of rows to draw is negative
         jr z, Grp2Empty                             ; number of rows to draw is zero
-        ld (RedrawCol_Grp2.RowCount), a
+        ld (RedrawColParams.RowCount2), a
 
         ; calculate write bits | initial VRAM addr
         ld a, d                                     ; a = VDP col index
@@ -603,29 +604,29 @@
         ld c, a                                     ; bc = VDP col offset (from VRAMRowAddrs)
         ld hl, (VRAMRowAddrs)                       ; hl = VDP write bits + VRAM base address
         add hl, bc                                  ; hl = VDP write bits + VRAM base address + col offset
-        ld (RedrawCol_Grp2.FirstVDPAddr), hl
+        ld (RedrawColParams.VDPAddr2), hl
 
         ret
 
     Grp2Empty:
         ld a, 0
-        ld (RedrawCol_Grp2.RowCount), a             ; RedrawCol_Grp2.RowCount = 0
+        ld (RedrawColParams.RowCount2), a             ; RedrawColParams.RowCount2 = 0
         ret
 
     ; Sets a column in the VRAM tilemap
     RedrawCol:
         ; write first col group
 
-        ld hl, (RedrawCol_Grp1.FirstVDPAddr)
+        ld hl, (RedrawColParams.VDPAddr1)
         ld c, VDP_CTRL_PORT
         ld de, 64
         exx
-            ld hl, (RedrawCol_Grp1.FirstBGAddr)
+            ld hl, (RedrawColParams.BGAddr)
             ld c, VDP_DATA_PORT
             ld de, BG_COLS * 2 - 2
         exx
 
-        ld a, (RedrawCol_Grp1.RowCount)
+        ld a, (RedrawColParams.RowCount1)
         ld b, a
         -:
             out (c), l
@@ -640,11 +641,11 @@
 
         ; write the second col group
 
-        ld a, (RedrawCol_Grp2.RowCount)
+        ld a, (RedrawColParams.RowCount2)
         cp 0
         ret z
 
-        ld hl, (RedrawCol_Grp2.FirstVDPAddr)
+        ld hl, (RedrawColParams.VDPAddr2)
         ld b, a
         -:
             out (c), l
