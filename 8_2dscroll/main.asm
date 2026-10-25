@@ -353,7 +353,7 @@
 
         ; calculate LastVisibleBGCol
         add a, c                                    ; a = FirstVisibleBGCol + difference
-        ld (LastVisibleBGCol), a        
+        ld (LastVisibleBGCol), a
 
         ret
 
@@ -605,23 +605,6 @@
         add hl, bc                                  ; hl = VDP write bits + VRAM base address + col offset
         ld (RedrawCol_Grp2.FirstVDPAddr), hl
 
-        ; calculate initial BG addr
-        ld a, (FirstVisibleBGRow)
-        ld hl, RedrawCol_Grp1.RowCount
-        add a, (hl)                                 ; a = first visible row index + rows previously drawn
-        ld h, 0
-        ld l, a                                     ; hl = row index
-        add hl, hl                                  ; hl = row offset
-        ld bc, BGRowAddrs
-        add hl, bc                                  ; hl = BGRowAddrs + row offset (from BGRowAddrs)
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = Tilemap + row offset (from Tilemap)
-        ld h, 0
-        ld l, e                                     ; hl = col index
-        add hl, hl                                  ; hl = col offset
-        add hl, bc                                  ; hl = Tilemap + row offset + col offset
-        ld (RedrawCol_Grp2.FirstBGAddr), hl
         ret
 
     Grp2Empty:
@@ -662,10 +645,6 @@
         ret z
 
         ld hl, (RedrawCol_Grp2.FirstVDPAddr)
-        exx
-            ld hl, (RedrawCol_Grp2.FirstBGAddr)
-        exx
-        
         ld b, a
         -:
             out (c), l
@@ -770,9 +749,9 @@
             ld c, VDP_CTRL_PORT
             out (c), e
             out (c), d
-        
+
             ld b, a
-        ld c, VDP_DATA_PORT
+            ld c, VDP_DATA_PORT
             otir
         +:
 
