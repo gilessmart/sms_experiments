@@ -546,11 +546,11 @@
         ld b, a                                     ; b = visible row count
         ld a, 28                                    ; a = 28
         ld hl, FirstVisibleVRAMRow
-        sub a, (hl)                                 ; a = 28 - first visible VRAM row idx
-        cp b
-        jr c, +                                     ; skip forward if VisisbleRowCount (b) > (28 - first visible VRAM row idx) (a)
-            ld a, b                                 ; a = visible row count
-        +:                                          ; a = MIN(visible row count, 28 - first visible VRAM row idx)
+        sub a, (hl)                                 ; a = 28 - first visible row idx
+        cp b                                        ; sets c if a < b
+        jr c, +                                     ; skip if c set i.e. if a < b
+            ld a, b
+        +:                                          ; a = MIN(28 - first visible row idx, visible row count)
         ld (RedrawColParams.RowCount1), a
 
         ; calculate write bits | initial VRAM addr
@@ -721,20 +721,24 @@
         
         ; calculate how many bytes to send to the VDP 
         ; ..when drawing from first visible tile in row to last tile in row
-        ld a, (FirstVisibleVRAMCol)
-        ld b, a                                     ; b = first visible VRAM col idx
+        ld a, (VisibleColCount)
+        ld b, a                                     ; b = visible row count
         ld a, 32                                    ; a = 32
-        sub b                                       ; a = 32 - first visible VRAM col idx
-        and 31                                      ; a = (32 - first visible VRAM col idx) % 32
-        add a, a                                    ; a = ((32 - first visible VRAM col idx) % 32) * 2
+        ld hl, FirstVisibleVRAMCol
+        sub a, (hl)                                 ; a = 32 - first visible col idx
+        cp b                                        ; sets c if a < b
+        jr c, +                                     ; skip if c set i.e. if a < b
+            ld a, b
+        +:                                          ; a = MIN(32 - first visible col idx, visible col count)
+        add a, a                                    ; a = MIN(32 - first visible col idx, visible col count) * 2
         ld (RedrawRowParams.ByteCount1), a
 
         ; calculate how many bytes to send to the VDP
         ; ..when drawing from first tile in row to last visible tile in row
-        ld b, a                                     ; b = ((32 - first visible VRAM col idx) % 32) * 2
+        ld b, a                                     ; b = MIN(32 - first visible col idx, visible cols) * 2
         ld a, (VisibleColCount)                     ; a = visible col count
         add a, a                                    ; a = visible col count * 2
-        sub b                                       ; a = (visible col count - ((32 - first visible VRAM col idx) % 32)) * 2
+        sub b                                       ; a = (visible col count - MIN(32 - first visible col idx, visible cols) * 2
         ld (RedrawRowParams.ByteCount2), a
         
         ret
@@ -743,18 +747,15 @@
     RedrawRow:        
         ld hl, (RedrawRowParams.BGAddr)
 
-        ld a, (RedrawRowParams.ByteCount1)
-        cp 0
-        jr z, +
-            ld de, (RedrawRowParams.VDPAddr1)
-            ld c, VDP_CTRL_PORT
-            out (c), e
-            out (c), d
+        ld de, (RedrawRowParams.VDPAddr1)
+        ld c, VDP_CTRL_PORT
+        out (c), e
+        out (c), d
 
-            ld b, a
-            ld c, VDP_DATA_PORT
-            otir
-        +:
+        ld a, (RedrawRowParams.ByteCount1)
+        ld b, a
+        ld c, VDP_DATA_PORT
+        otir
 
         ld a, (RedrawRowParams.ByteCount2)
         cp 0
