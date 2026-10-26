@@ -703,7 +703,7 @@
         ; calculate how many bytes to send to the VDP 
         ; ..when drawing from first visible tile in row to last tile in row
         ld a, (VisibleColCount)
-        ld b, a                                     ; b = visible row count
+        ld b, a                                     ; b = visible col count
         ld a, 32                                    ; a = 32
         ld hl, FirstVisibleVRAMCol
         sub a, (hl)                                 ; a = 32 - first visible col idx
@@ -716,10 +716,10 @@
 
         ; calculate how many bytes to send to the VDP
         ; ..when drawing from first tile in row to last visible tile in row
-        ld b, a                                     ; b = MIN(32 - first visible col idx, visible cols) * 2
-        ld a, (VisibleColCount)                     ; a = visible col count
+        ld c, a                                     ; c = MIN(32 - first visible col idx, visible cols) * 2
+        ld a, b                                     ; a = visible col count
         add a, a                                    ; a = visible col count * 2
-        sub b                                       ; a = (visible col count - MIN(32 - first visible col idx, visible cols) * 2
+        sub c                                       ; a = (visible col count - MIN(32 - first visible col idx, visible cols) * 2
         ld (RedrawRowParams.ByteCount2), a
         
         ; calculate VRAM tilemap addresses (inc. write bits):
