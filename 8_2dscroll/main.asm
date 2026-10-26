@@ -661,7 +661,7 @@
         ret
 
     ; Sets values used during VBlank by the RedrawRow routine
-    ; Clobbers: a, bc, hl
+    ; Clobbers: a, bc, de, hl
     PrepRedrawRow:
         ld a, (VScrollDir)
         cp VSCROLL_DIR_NONE                         ; checkk scroll direction
