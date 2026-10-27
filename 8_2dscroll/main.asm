@@ -67,7 +67,7 @@
 .include "vdp.asm"
 .include "sprites.asm"
 .include "controller.asm"
-.include "shiftutils.asm"
+.include "utils.asm"
 
 .org $0000
 .section "startup" force
@@ -547,10 +547,7 @@
         ld a, 28                                    ; a = 28
         ld hl, FirstVisibleVRAMRow
         sub a, (hl)                                 ; a = 28 - first visible row idx
-        cp b                                        ; sets c if a < b
-        jr c, +                                     ; skip if c set i.e. if a < b
-            ld a, b
-        +:                                          ; a = MIN(28 - first visible row idx, visible row count)
+        MinB                                        ; a = MIN(28 - first visible row idx, visible row count)
         ld (RedrawColParams.RowCount1), a
 
         ; calculate write bits | initial VRAM addr
@@ -707,10 +704,7 @@
         ld a, 32                                    ; a = 32
         ld hl, FirstVisibleVRAMCol
         sub a, (hl)                                 ; a = 32 - first visible col idx
-        cp b                                        ; sets c if a < b
-        jr c, +                                     ; skip if c set i.e. if a < b
-            ld a, b
-        +:                                          ; a = MIN(32 - first visible col idx, visible col count)
+        MinB                                        ; a = MIN(32 - first visible col idx, visible col count)
         add a, a                                    ; a = MIN(32 - first visible col idx, visible col count) * 2
         ld (RedrawRowParams.ByteCount1), a
 
