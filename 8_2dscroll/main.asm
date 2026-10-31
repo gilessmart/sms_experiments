@@ -539,9 +539,16 @@
         ++:
 
         ; calculate BG tilemap addr of first visible tile in the column
-        ld a, (FirstVisibleBGRow)                   ; a = row index
+        ld a, (FirstVisibleBGRow)
+        ld b, a                                     ; b = row index
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_UP
+        jr nz, +
+            ; scrolling up
+            inc b
+        +:
         ld h, 0
-        ld l, a                                     ; hl = row index
+        ld l, b                                     ; hl = row index
         add hl, hl                                  ; hl = row offset
         ld bc, BGRowAddrs
         add hl, bc                                  ; hl = BGRowAddrs + row offset (from BGRowAddrs)
@@ -561,10 +568,18 @@
         ld hl, FirstVisibleVRAMRow
         sub a, (hl)                                 ; a = 28 - first visible row idx
         MinB                                        ; a = MIN(28 - first visible row idx, visible row count)
+        ld c, a                                     ; c = MIN(28 - first visible row idx, visible row count)
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_UP
+        jr nz, +
+            ; scrolling up
+            dec b                                   ; b = visible row count - 1
+            dec c                                   ; c = MIN(28 - first visible row idx, visible row count) - 1
+        +:
+        ld a, c
         ld (RedrawColParams.RowCount1), a
 
         ; calculate how many rows to draw between the first row and the last visible row
-        ld c, a                                     ; c = MIN(28 - first visible row idx, visible row count)
         ld a, b                                     ; a = visible row count
         sub c                                       ; a = visible col count - MIN(28 - first visible row idx, visible row count)
         ld (RedrawColParams.RowCount2), a
@@ -579,6 +594,14 @@
         add hl, de                                  ; hl = VDP write bits + VRAM base address + col offset
         ld (RedrawColParams.VDPAddr2), hl
         ld a, (FirstVisibleVRAMRow)                 ; a = row index
+        ld b, a
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_UP
+        jr nz, +
+            ; scrolling up
+            inc b
+        +:
+        ld a, b
         add a, a                                    ; a = row offset
         ld h, 0
         ld l, a                                     ; hl = row offset
