@@ -596,8 +596,6 @@
     ; Sets a column in the VRAM tilemap
     RedrawCol:
         ; write first col group
-
-        ld hl, (RedrawColParams.VDPAddr1)
         ld c, VDP_CTRL_PORT
         ld de, 64
         exx
@@ -607,7 +605,11 @@
         exx
 
         ld a, (RedrawColParams.RowCount1)
+        cp 0
+        jr z, +
+
         ld b, a
+        ld hl, (RedrawColParams.VDPAddr1)
         -:
             out (c), l
             out (c), h
@@ -620,13 +622,13 @@
             djnz -
 
         ; write the second col group
-
+        +:
         ld a, (RedrawColParams.RowCount2)
         cp 0
         ret z
 
-        ld hl, (RedrawColParams.VDPAddr2)
         ld b, a
+        ld hl, (RedrawColParams.VDPAddr2)
         -:
             out (c), l
             out (c), h
