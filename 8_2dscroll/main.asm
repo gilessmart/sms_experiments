@@ -561,7 +561,8 @@
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
         ld (RedrawColParams.BGAddr), hl
 
-        ; calculate how many rows to draw between the first visible row and last row
+        ; calculate how many rows to draw between the first visible row and last row in the VRAM tilemap (RowCount1)
+        ; and between the first row and the last visible row in the VRAM tilemap (RowCount2)
         ld a, (VisibleRowCount)
         ld b, a                                     ; b = visible row count
         ld a, 28                                    ; a = 28
@@ -576,13 +577,27 @@
             dec b                                   ; b = visible row count - 1
             dec c                                   ; c = MIN(28 - first visible row idx, visible row count) - 1
         +:
-        ld a, c
-        ld (RedrawColParams.RowCount1), a
-
-        ; calculate how many rows to draw between the first row and the last visible row
         ld a, b                                     ; a = visible row count
         sub c                                       ; a = visible col count - MIN(28 - first visible row idx, visible row count)
+        ld b, a
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_DOWN
+        ld a, b
+        jr nz, +
+            ld a, b
+            cp 0
+            jr z, ++
+                ; not zero
+                dec a
+            jr +++
+            ++:
+                ; zero
+                dec c
+            +++:
+        +:
         ld (RedrawColParams.RowCount2), a
+        ld a, c
+        ld (RedrawColParams.RowCount1), a
 
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in col, addr of first *visible* tile in col
