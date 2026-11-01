@@ -591,6 +591,38 @@
         add hl, bc                                  ; hl = VDP write bits + row offset + col offset
         ld (RedrawColParams.VDPAddr1), hl
 
+        ; prevent overdraw
+        ; if we're scrolling diagonally don't have RedrawCol draw the corner tile because RedrawRow also draws it
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_NONE                         ; sets c if VScrollDir < VSCROLL_DIR_NONE i.e. VScrollDir = VSCROLL_DIR_UP
+        jr nc, +                                    ; scrolling up..
+            ld hl, RedrawColParams.RowCount1
+            dec (hl)
+
+            ld hl, (RedrawColParams.BGAddr)
+            ld bc, BG_COLS*2
+            add hl, bc
+            ld (RedrawColParams.BGAddr), hl
+
+            ld hl, (RedrawColParams.VDPAddr1)
+            ld bc, 32*2
+            add hl, bc
+            ld (RedrawColParams.VDPAddr1), hl
+        jr ++
+        +:
+        jr z, ++                                    ; scrolling down..
+            ld a, (RedrawColParams.RowCount2)
+            cp 0
+            jr z, +                                 ; RowCount2 > 0..
+                ld hl, RedrawColParams.RowCount2
+                dec (hl)
+                jr ++
+            +:                                      ; RowCount2 = 0..
+                ld hl, RedrawColParams.RowCount1
+                dec (hl)
+                jr ++
+        ++:
+
         ret
 
     ; Sets a column in the VRAM tilemap
