@@ -253,13 +253,12 @@
         ++:
 
         call CalculateVisibleArea
-        
         call PrepRedrawRow
         call PrepRedrawCol
 
         jr MainLoop
 
-    ; Calculates and stores the first visible row & col indices and the number of visible rows & cols
+    ; Calculates and stores the first & last visible row & col indices, and the number of visible rows & cols
     ; Clobbers: a, bc, de, hl
     CalculateVisibleArea:
         ;; Rows ;;
