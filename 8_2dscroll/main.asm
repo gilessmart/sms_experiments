@@ -129,21 +129,21 @@
         VDP_SetRegister 9, 0         ; BG Y Scroll
         VDP_SetRegister 10, $ff      ; line interrupt line counter
 
-        ; setup CRAM (palette)
+        ; populate CRAM (palette)
         ld hl, VDP_CMD_CRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, Palette
         ld de, PaletteEnd - Palette
         call VDP_CopyData
 
-        ; setup tile patterns
+        ; populate tile patterns
         ld hl, VDP_CMD_VRAM_WRITE << 8 | $0000
         call VDP_SetAddress
         ld hl, TilePatterns
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
-        ; setup tilemap
+        ; populate tilemap
         ld a, 23*2                      ; a = row index * 2
         -:
             ; set VRAM write command / address
@@ -191,25 +191,13 @@
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
-        ld (FirstVisibleVRAMRow), a
-        ld (FirstVisibleBGRow), a
-        ld a, 1
-        ld (FirstVisibleVRAMCol), a
-        ld (FirstVisibleBGCol), a
+        ld bc, 0
+        ld (BGScrollX), bc
+        ld (BGScrollY), bc
         ld a, HSCROLL_DIR_NONE
         ld (HScrollDir), a
         ld a, VSCROLL_DIR_NONE
         ld (VScrollDir), a
-        ld a, 23
-        ld (LastVisibleVRAMCol), a
-        ld (LastVisibleBGCol), a
-        ld a, 24
-        ld (VisibleRowCount), a
-        ld a, 31
-        ld (VisibleColCount), a
-        ld bc, 0
-        ld (BGScrollX), bc
-        ld (BGScrollY), bc
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
