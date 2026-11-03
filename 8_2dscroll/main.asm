@@ -96,13 +96,8 @@
     ld l, a
     VDP_SetRegister 9
 
-    ld a, (HScrollDir)
-    cp HSCROLL_DIR_NONE
-    call nz, RedrawCol      ; skip if HScrollDir == HSCROLL_DIR_NONE
-
-    ld a, (VScrollDir)
-    cp VSCROLL_DIR_NONE
-    call nz, RedrawRow      ; skip if VScrollDir == VSCROLL_DIR_NONE
+    call RedrawCol
+    call RedrawRow
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -182,10 +177,13 @@
         sub 2
         jr nc, -
 
-        ; initilise SAT
+        ; populate SAT
         ld bc, 0
         call SPRITES_TerminateSAT
         call SPRITES_FlushSAT
+
+        ; turn on display
+        VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
 
         ; initialise scroll offsets / redraw columns
         ld a, 0
@@ -199,9 +197,15 @@
         ld a, VSCROLL_DIR_NONE
         ld (VScrollDir), a
 
-        ; turn on display
-        VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
+        ; prepare state for redraw
+        call CalculateVisibleArea
+        call PrepRedrawRow
+        call PrepRedrawCol
 
+        ; read & clear VDP flags, clear interrupt request line..
+        ; (forces the first interrupt to fire on the regular scanline, instead of ASAP)
+        in a, (VDP_CTRL_PORT)
+        ; ..then enable interrupts
         ei
 
     MainLoop:
@@ -504,24 +508,21 @@
     ; Sets the values used during VBlank by the RedrawCol routine
     ; Clobbers: a, bc, de, hl
     PrepRedrawCol:
-        ld a, (HScrollDir)
-        cp HSCROLL_DIR_NONE                         ; check scroll direction
-
-        ret z                                       ; bail out if we're not scrolling left or right
-
         ; calculate target VDP & BG col indices
-        jr c, +                                     ; skip forward if HScrollDir < 1
+        ld a, (HScrollDir)
+        cp HSCROLL_DIR_RIGHT
+        jr z, +
+            ; scrolling left / no scrolling
+            ld a, (FirstVisibleVRAMCol)
+            ld d, a                                 ; d = target VRAM col index
+            ld a, (FirstVisibleBGCol)
+            ld e, a                                 ; e = target BG col index
+        jr ++
+        +:
             ; scrolling right
             ld a, (LastVisibleVRAMCol)
             ld d, a                                 ; d = target VRAM col index
             ld a, (LastVisibleBGCol)
-            ld e, a                                 ; e = target BG col index
-        jr ++
-        +:
-            ; scrolling left
-            ld a, (FirstVisibleVRAMCol)
-            ld d, a                                 ; d = target VRAM col index
-            ld a, (FirstVisibleBGCol)
             ld e, a                                 ; e = target BG col index
         ++:
 
@@ -578,11 +579,11 @@
         add hl, bc                                  ; hl = VDP write bits + row offset + col offset
         ld (RedrawColParams.VDPAddr1), hl
 
-        ; prevent overdraw
-        ; if we're scrolling diagonally don't have RedrawCol draw the corner tile because RedrawRow also draws it
+        ; prevent overdraw - don't draw the corner tile because RedrawRow also draws it
         ld a, (VScrollDir)
-        cp VSCROLL_DIR_NONE                         ; sets c if VScrollDir < VSCROLL_DIR_NONE i.e. VScrollDir = VSCROLL_DIR_UP
-        jr nc, +                                    ; scrolling up..
+        cp VSCROLL_DIR_DOWN
+        jr z, +
+            ; scrolling up / no scrolling
             ld hl, RedrawColParams.RowCount1
             dec (hl)
 
@@ -597,19 +598,19 @@
             ld (RedrawColParams.VDPAddr1), hl
         jr ++
         +:
-        jr z, ++                                    ; scrolling down..
+            ; scrolling down..
             ld a, (RedrawColParams.RowCount2)
             cp 0
-            jr z, +                                 ; RowCount2 > 0..
+            jr z, +
+                ; ..and RowCount2 > 0..
                 ld hl, RedrawColParams.RowCount2
                 dec (hl)
-                jr ++
-            +:                                      ; RowCount2 = 0..
+            jr ++
+            +:
+                ; ..and RowCount2 = 0..
                 ld hl, RedrawColParams.RowCount1
                 dec (hl)
-                jr ++
         ++:
-
         ret
 
     ; Sets a column in the VRAM tilemap
@@ -664,24 +665,21 @@
     ; Sets values used during VBlank by the RedrawRow routine
     ; Clobbers: a, bc, de, hl
     PrepRedrawRow:
-        ld a, (VScrollDir)
-        cp VSCROLL_DIR_NONE                         ; checkk scroll direction
-
-        ret z                                       ; bail out if we're not scrolling up or down
-
         ; calculate target VDP & BG row indices
-        jr c, +                                     ; skip forward if VScrollDir < 1
-            ; VScrollDir == VSCROLL_DIR_DOWN
-            ld a, (LastVisibleVRAMRow)
-            ld d, a
-            ld a, (LastVisibleBGRow)
-            ld e, a
-        jr ++
-        +:
-            ; VScrollDir == VSCROLL_DIR_UP
+        ld a, (VScrollDir)
+        cp VSCROLL_DIR_DOWN
+        jr z, +
+            ; scrolling up / no scrolling
             ld a, (FirstVisibleVRAMRow)
             ld d, a
             ld a, (FirstVisibleBGRow)
+            ld e, a
+        jr ++
+        +:
+            ; scrolling down
+            ld a, (LastVisibleVRAMRow)
+            ld d, a
+            ld a, (LastVisibleBGRow)
             ld e, a
         ++:
 
