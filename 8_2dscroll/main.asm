@@ -1,9 +1,7 @@
-.define HSCROLL_DIR_LEFT 0
-.define HSCROLL_DIR_NONE 1
-.define HSCROLL_DIR_RIGHT 2
-.define VSCROLL_DIR_UP 0
-.define VSCROLL_DIR_NONE 1
-.define VSCROLL_DIR_DOWN 2
+.define REDRAW_COL_TARGET_FIRST 0
+.define REDRAW_COL_TARGET_LAST 1
+.define REDRAW_ROW_TARGET_FIRST 0
+.define REDRAW_ROW_TARGET_LAST 1
 
 .define SCROLL_INCREMENT 5  ; max = 8
 .define BG_ROWS 64          ; rows in background
@@ -53,8 +51,8 @@
     LastVisibleVRAMCol: db
     FirstVisibleBGCol: db
     LastVisibleBGCol: db
-    HScrollDir: db
-    VScrollDir: db
+    RedrawColTarget: db
+    RedrawRowTarget: db
     RedrawRowParams: instanceof RedrawRowParamsStruct
     RedrawColParams: instanceof RedrawColParamsStruct
 .ends
@@ -185,17 +183,17 @@
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
 
-        ; initialise scroll offsets / redraw columns
+        ; initialise scroll offsets / redraw targets
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
-        ld a, HSCROLL_DIR_NONE
-        ld (HScrollDir), a
-        ld a, VSCROLL_DIR_NONE
-        ld (VScrollDir), a
+        ld a, REDRAW_COL_TARGET_FIRST
+        ld (RedrawColTarget), a
+        ld a, REDRAW_ROW_TARGET_FIRST
+        ld (RedrawRowTarget), a
 
         ; prepare state for redraw
         call CalculateVisibleArea
@@ -216,14 +214,12 @@
         in a, CTLR_PORT_AB
 
         ; scroll up / down
-        ld hl, VScrollDir
-        ld (hl), VSCROLL_DIR_NONE
+        ld hl, RedrawRowTarget
+        ld (hl), REDRAW_ROW_TARGET_FIRST
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
                 call ScrollUp
-                ld hl, VScrollDir
-                ld (hl), VSCROLL_DIR_UP
             ex af, af'
         jr ++
         +:
@@ -231,20 +227,18 @@
         jr nz, ++
             ex af, af'
                 call ScrollDown
-                ld hl, VScrollDir
-                ld (hl), VSCROLL_DIR_DOWN
+                ld hl, RedrawRowTarget
+                ld (hl), REDRAW_ROW_TARGET_LAST
             ex af, af'
         ++:
 
         ; scroll left / right
-        ld hl, HScrollDir
-        ld (hl), HSCROLL_DIR_NONE
+        ld hl, RedrawColTarget
+        ld (hl), REDRAW_COL_TARGET_FIRST
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
                 call ScrollLeft
-                ld hl, HScrollDir
-                ld (hl), HSCROLL_DIR_LEFT
             ex af, af'
         jr ++
         +:
@@ -252,8 +246,8 @@
         jr nz, ++
             ex af, af'
                 call ScrollRight
-                ld hl, HScrollDir
-                ld (hl), HSCROLL_DIR_RIGHT
+                ld hl, RedrawColTarget
+                ld (hl), REDRAW_COL_TARGET_LAST
             ex af, af'
         ++:
 
@@ -510,17 +504,17 @@
     ; Clobbers: a, bc, de, hl
     PrepRedrawCol:
         ; calculate target VDP & BG col indices
-        ld a, (HScrollDir)
-        cp HSCROLL_DIR_RIGHT
+        ld a, (RedrawColTarget)
+        cp REDRAW_COL_TARGET_LAST
         jr z, +
-            ; scrolling left / no scrolling
+            ; redraw first col
             ld a, (FirstVisibleVRAMCol)
             ld d, a                                 ; d = target VRAM col index
             ld a, (FirstVisibleBGCol)
             ld e, a                                 ; e = target BG col index
         jr ++
         +:
-            ; scrolling right
+            ; redraw last col
             ld a, (LastVisibleVRAMCol)
             ld d, a                                 ; d = target VRAM col index
             ld a, (LastVisibleBGCol)
@@ -581,10 +575,10 @@
         ld (RedrawColParams.VDPAddr1), hl
 
         ; prevent overdraw - don't draw the corner tile because RedrawRow also draws it
-        ld a, (VScrollDir)
-        cp VSCROLL_DIR_DOWN
+        ld a, (RedrawRowTarget)
+        cp REDRAW_ROW_TARGET_LAST
         jr z, +
-            ; scrolling up / no scrolling
+            ; redrawing first row
             ld hl, RedrawColParams.RowCount1
             dec (hl)
 
@@ -599,7 +593,7 @@
             ld (RedrawColParams.VDPAddr1), hl
         jr ++
         +:
-            ; scrolling down..
+            ; redrawing last row..
             ld a, (RedrawColParams.RowCount2)
             cp 0
             jr z, +
@@ -667,17 +661,17 @@
     ; Clobbers: a, bc, de, hl
     PrepRedrawRow:
         ; calculate target VDP & BG row indices
-        ld a, (VScrollDir)
-        cp VSCROLL_DIR_DOWN
+        ld a, (RedrawRowTarget)
+        cp REDRAW_ROW_TARGET_LAST
         jr z, +
-            ; scrolling up / no scrolling
+            ; redraw first row
             ld a, (FirstVisibleVRAMRow)
             ld d, a
             ld a, (FirstVisibleBGRow)
             ld e, a
         jr ++
         +:
-            ; scrolling down
+            ; redraw last row
             ld a, (LastVisibleVRAMRow)
             ld d, a
             ld a, (LastVisibleBGRow)
