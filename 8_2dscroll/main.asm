@@ -137,43 +137,29 @@
         call VDP_CopyData
 
         ; populate tilemap
-        ld a, 23*2                      ; a = row index * 2
-        -:
-            ; set VRAM write command / address
-
-            ld h, 0
-            ld l, a                     ; hl = row index * 2
-
-            ld bc, VRAMRowAddrs
-            add hl, bc                  ; hl = VRAMRowAddrs + row index * 2
-
-            ld e, (hl)
-            inc hl
-            ld d, (hl)                  ; de = VDP write bits + row offset
-            ex de, hl                   ; hl = VDP write bits + row offset
-            
-            ld c, VDP_CTRL_PORT
-            out (c), l
-            out (c), h                  ; output hl to VDP
-
-            ; set VRAM data
-
-            ld h, 0
-            ld l, a                     ; hl = row index * 2
-
-            ld bc, BGRowAddrs
-            add hl, bc                  ; hl = BGRowAddrs + row index * 2
-
-            ld e, (hl)
-            inc hl
-            ld d, (hl)                  ; de = Tilemap + row offset
-            ex de, hl                   ; hl = Tilemap + row offset
-
+        ld c, VDP_CTRL_PORT
+        ld de, 64
+        ld hl, (VRAMRowAddrs)
+        inc hl
+        inc hl
+        exx
             ld c, VDP_DATA_PORT
-            ld b, 64
-            otir                        ; output 64 bytes starting at memory address hl to VDP
-        sub 2
-        jr nc, -
+            ld de, BG_COLS*2 - 31*2
+            ld hl, (BGRowAddrs)
+            inc hl
+            inc hl
+        exx
+        ld b, 24
+        -:            
+            out (c), l
+            out (c), h
+            add hl, de
+            exx
+                ld b, 31*2
+                otir
+                add hl, de
+            exx
+        djnz -
 
         ; populate SAT
         ld bc, 0
