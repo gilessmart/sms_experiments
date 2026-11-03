@@ -203,7 +203,8 @@
         call PrepRedrawCol
 
         ; read & clear VDP flags, clear interrupt request line..
-        ; (forces the first interrupt to fire on the regular scanline, instead of ASAP)
+        ; (forces the first interrupt to fire on the regular scanline, instead of ASAP, 
+        ; which could cause the next interrupt to fire after a shorter interval than usual)
         in a, (VDP_CTRL_PORT)
         ; ..then enable interrupts
         ei
