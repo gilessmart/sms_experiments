@@ -157,20 +157,20 @@
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
 
-        ; initialise scroll offsets / redraw targets
+        ; initialise scroll offsets / visible area
         ld a, 0
         ld (VDPScrollX), a
         ld (VDPScrollY), a
         ld bc, 0
         ld (BGScrollX), bc
         ld (BGScrollY), bc
-        ld a, REDRAW_COL_TARGET_FIRST
-        ld (RedrawColTarget), a
+        call CalculateVisibleArea
+
+        ; prepare for redraw
         ld a, REDRAW_ROW_TARGET_FIRST
         ld (RedrawRowTarget), a
-
-        ; prepare state for redraw
-        call CalculateVisibleArea
+        ld a, REDRAW_COL_TARGET_FIRST
+        ld (RedrawColTarget), a
         call PrepRedrawRow
         call PrepRedrawCol
 
