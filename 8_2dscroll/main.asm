@@ -81,19 +81,7 @@
 .section "interrupt_handler" force
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
 
-    ; invert scroll offset & copy to VDP
-    ld a, (VDPScrollX)
-    ld l, a                 ; l = VDPScrollX
-    ld a, 0
-    sub l                   ; a = 256 - VDPScrollX
-    ld l, a                 ; l = 256 - VDPScrollX
-    VDP_SetRegister 8
-
-    ; copy Y scroll value to VDP
-    ld a, (VDPScrollY)
-    ld l, a
-    VDP_SetRegister 9
-
+    call UpdateBGScroll
     call RedrawCol
     call RedrawRow
 
@@ -746,6 +734,22 @@
         ld b, a
         ld c, VDP_DATA_PORT
         otir
+
+        ret
+
+    UpdateBGScroll:
+        ; invert scroll offset & copy to VDP
+        ld a, (VDPScrollX)
+        ld l, a                 ; l = VDPScrollX
+        ld a, 0
+        sub l                   ; a = 256 - VDPScrollX
+        ld l, a                 ; l = 256 - VDPScrollX
+        VDP_SetRegister 8
+
+        ; copy Y scroll value to VDP
+        ld a, (VDPScrollY)
+        ld l, a
+        VDP_SetRegister 9
 
         ret
 .ends
