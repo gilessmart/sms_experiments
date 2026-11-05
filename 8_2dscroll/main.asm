@@ -6,6 +6,8 @@
 .define SCROLL_INCREMENT 5  ; max = 8
 .define BG_ROWS 64          ; rows in background
 .define BG_COLS 127         ; cols in background
+.define INIT_BG_POSX 0
+.define INIT_BG_POSY 0
 
 .memorymap
     defaultslot 0
@@ -96,6 +98,45 @@
 .ends
 
 .section "main"
+    ; Calcualtes the BG tilemap addr of the given index
+    ; Parameters: a = row idx, b = col idx
+    ; Clobbers: a, de, hl
+    ; Sets: hl = calculated addr
+    BGAddr:
+        ld h, 0
+        ld l, a
+        add hl, hl                                  ; hl = BG row offset from BGAddrs
+        ld de, BGRowAddrs
+        add hl, de                                  ; hl = BGAddrs + BG row offset from BGAddrs
+        ld e, (hl)                                  
+        inc hl
+        ld d, (hl)                                  ; de = BG tilemap row start addr
+        ld h, 0
+        ld l, b
+        add hl, hl                                  ; hl = BG col offset from row start
+        add hl, de                                  ; hl = BG tilemap row start addr + BG col offset from row start
+        ret
+
+    ; Calcualtes the VRAM tilemap addr of the given index
+    ; Parameters: a = row idx, b = col idx
+    ; Clobbers: a, de, hl
+    ; Sets: hl = calculated addr
+    VRAMAddr:
+        add a, a
+        ld h, 0
+        ld l, a                                     ; hl = VRAM row offset from VRAMRowAddrs
+        ld de, VRAMRowAddrs
+        add hl, de                                  ; hl = VRAMRowAddrs + VRAM row offset from VRAMRowAddrs
+        ld e, (hl)                                  
+        inc hl
+        ld d, (hl)                                  ; de = VDP write bits + VDP tilemap row start addr
+        ld a, b
+        add a, a
+        ld h, 0
+        ld l, a                                     ; hl = VRAM col offset from row start
+        add hl, de                                  ; hl = VDP write bits + VDP tilemap row start addr + col offset from row start
+        ret
+
     Init:
         ; initialise VDP registers
         VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
@@ -109,6 +150,11 @@
         VDP_SetRegister 8, 0         ; BG X Scroll
         VDP_SetRegister 9, 0         ; BG Y Scroll
         VDP_SetRegister 10, $ff      ; line interrupt line counter
+
+        ; populate SAT
+        ld bc, 0
+        call SPRITES_TerminateSAT
+        call SPRITES_FlushSAT
 
         ; populate CRAM (palette)
         ld hl, VDP_CMD_CRAM_WRITE << 8 | $0000
@@ -124,47 +170,82 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
+        ; initialise scroll offsets
+        ld a, INIT_BG_POSX # 256
+        ld (VDPScrollX), a
+        ld a, INIT_BG_POSY # 224
+        ld (VDPScrollY), a
+        ld bc, INIT_BG_POSX
+        ld (BGScrollX), bc
+        ld bc, INIT_BG_POSY
+        ld (BGScrollY), bc
+
+        call CalculateVisibleArea
+        call UpdateBGScroll
+
         ; populate tilemap
+
+        ; draw from FirstVisibleVRAMRow, FirstVisibleVRAMCol to LastRowInTilemap, LastColInTilemap
+
+        ; calculte start addr in VRAM tilemap
+        ld a, (FirstVisibleVRAMRow)
+        ld hl, FirstVisibleVRAMCol
+        ld b, (hl)
+        call VRAMAddr
+        ; set port and interval
         ld c, VDP_CTRL_PORT
         ld de, 64
-        ld hl, (VRAMRowAddrs)
-        inc hl
-        inc hl
+        ; calculate how many rows to draw in from first vis.
+        ; MIN(vis. row count, 28 - first vis. VRAM row idx)
+        ld a, (FirstVisibleVRAMRow)
+        ld b, a
+        ld a, 28
+        sub a, b
+        ld b, a
+        ld a, (VisibleRowCount)
+        MinB
+        ld b, a
         exx
+            ; calculte start addr in BG tilemap
+            ld a, (FirstVisibleBGRow)
+            ld hl, FirstVisibleBGCol
+            ld b, (hl)
+            call BGAddr
+            ; calculate how many bytes to output when drawing from first vis.
+            ; MIN(vis. col count, 32 - first vis. VRAM col idx)
+            ld a, (FirstVisibleVRAMCol)
+            ld b, a
+            ld a, 32
+            sub a, b
+            ld b, a
+            ld a, (VisibleColCount)
+            MinB
+            add a, a
+            ; set interval
+            ex de,  hl                              ; backup BGAddr to de
+                ld hl, BG_COLS*2
+                ld b, 0
+                ld c, a
+                or a                                ; clear carry flag
+                sbc hl, bc
+            ex de, hl                               ; restore BGAddr
+            ; set port
             ld c, VDP_DATA_PORT
-            ld de, BG_COLS*2 - 31*2
-            ld hl, (BGRowAddrs)
-            inc hl
-            inc hl
         exx
-        ld b, 24
+        
         -:            
             out (c), l
             out (c), h
             add hl, de
             exx
-                ld b, 31*2
+                ld b, a
                 otir
                 add hl, de
             exx
         djnz -
 
-        ; populate SAT
-        ld bc, 0
-        call SPRITES_TerminateSAT
-        call SPRITES_FlushSAT
-
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
-
-        ; initialise scroll offsets / visible area
-        ld a, 0
-        ld (VDPScrollX), a
-        ld (VDPScrollY), a
-        ld bc, 0
-        ld (BGScrollX), bc
-        ld (BGScrollY), bc
-        call CalculateVisibleArea
 
         ; prepare for redraw
         ld a, REDRAW_ROW_TARGET_FIRST
