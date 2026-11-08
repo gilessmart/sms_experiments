@@ -23,7 +23,8 @@
 .endro
 
 .struct RedrawRowsStruct
-    FirstVisVRAMColOffset: dw
+    VRAMInterval1: dw
+    VRAMInterval2: dw
     BGInterval: dw
     ByteCount1: db
     ByteCount2: db
@@ -195,12 +196,17 @@
 
         ; draw from FirstVisibleVRAMRow, FirstVisibleVRAMCol to LastRowInTilemap, LastColInTilemap
 
-        ; store FirstVisibleCol offset
+        ; store interval from first col to first vis. col (bytes)
         ld a, (FirstVisibleVRAMCol)
         ld h, 0
         ld l, a
         add hl, hl
-        ld (RedrawRows.FirstVisVRAMColOffset), hl
+        ld (RedrawRows.VRAMInterval1), hl
+
+        ; store interval from first col to first vis. col on next row (bytes)
+        ld de, 64
+        add hl, de
+        ld (RedrawRows.VRAMInterval2), hl
 
         ; store BG tilemap interval (bytes) from the end of one line to the start of the next
         ; (BG_COLS - VisColCount) * 2
@@ -278,7 +284,7 @@
             exx
 
             ; move VRAMAddr back to start of row
-            ld de, (RedrawRows.FirstVisVRAMColOffset)
+            ld de, (RedrawRows.VRAMInterval1)
             or a
             sbc hl, de                              ; hl =- first vis col offset
 
@@ -299,9 +305,7 @@
             exx
 
             ; move VRAMAddr to first vis. col on next line
-            ld de, (RedrawRows.FirstVisVRAMColOffset)
-            add hl, de
-            ld de, 64
+            ld de, (RedrawRows.VRAMInterval2)
             add hl, de
         djnz -
 
