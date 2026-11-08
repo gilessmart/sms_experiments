@@ -258,6 +258,9 @@
             ld hl, FirstVisibleBGCol
             ld b, (hl)
             call BGAddr
+
+            ; set BG interval
+            ld de, (RedrawRows.BGInterval)
             
             ; set port
             ld c, VDP_DATA_PORT
@@ -292,7 +295,6 @@
                 +:
                 
                 ; move BGAddr to next line
-                ld de, (RedrawRows.BGInterval)
                 add hl, de
             exx
 
