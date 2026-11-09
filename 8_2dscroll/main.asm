@@ -198,9 +198,9 @@
 
         ; store interval from first col to first vis. col (bytes)
         ld a, (FirstVisibleVRAMCol)
+        add a, a
         ld h, 0
         ld l, a
-        add hl, hl
         ld (RedrawRows.VRAMInterval1), hl
 
         ; store interval from first col to first vis. col on next row (bytes)
