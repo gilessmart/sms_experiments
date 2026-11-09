@@ -128,18 +128,18 @@
 
     ; Calcualtes the VRAM tilemap addr of the first col of the given row index
     ; Parameters: a = row idx
-    ; Clobbers: a, de, hl
-    ; Sets: de = calculated addr
-    VRAMRowAddr:
+    ; Clobbers: a, bc, hl
+    ; Sets: bc = calculated tilemap addr
+    .macro VRAMRowAddr
         add a, a
         ld h, 0
         ld l, a                                     ; hl = VRAM row offset from VRAMRowAddrs
-        ld de, VRAMRowAddrs
-        add hl, de                                  ; hl = VRAMRowAddrs + VRAM row offset from VRAMRowAddrs
-        ld e, (hl)                                  
+        ld bc, VRAMRowAddrs
+        add hl, bc                                  ; hl = VRAMRowAddrs + VRAM row offset from VRAMRowAddrs
+        ld c, (hl)                                  
         inc hl
-        ld d, (hl)                                  ; de = VDP write bits + VDP tilemap row start addr
-        ret
+        ld b, (hl)                                  ; bc = VDP write bits + VDP tilemap row start addr
+    .endm
 
     Init:
         ; initialise VDP registers
@@ -235,9 +235,9 @@
         
         ; calculte start addr in VRAM tilemap
         ld a, (FirstVisibleVRAMRow)
-        call VRAMRowAddr
+        VRAMRowAddr
         ld hl, (RedrawRows.VRAMInterval1)
-        add hl, de
+        add hl, bc
 
         ; calculate how many rows to draw in from first vis.
         ; MIN(vis. row count, 28 - first vis. VRAM row idx)
@@ -670,23 +670,16 @@
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in col, addr of first *visible* tile in col
         ld a, d                                     ; a = VDP col index
-        add a, a                                    ; a = VDP col offset (from start of VRAM row)
+        add a, a                                    ; a = VDP col offset (from start of row)
         ld d, 0
-        ld e, a                                     ; de = VDP col offset (from start of VRAM row)
+        ld e, a                                     ; de = VDP col offset (from start of row)
         ld hl, (VRAMRowAddrs)                       ; hl = VDP write bits + VRAM base address
         add hl, de                                  ; hl = VDP write bits + VRAM base address + col offset
         ld (RedrawColParams.VDPAddr2), hl
         ld a, (FirstVisibleVRAMRow)                 ; a = row index
-        add a, a                                    ; a = row offset
-        ld h, 0
-        ld l, a                                     ; hl = row offset
-        ld bc, VRAMRowAddrs
-        add hl, bc                                  ; hl = VRAMRowAddrs + row offset (from VRAMRowAddrs)
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = VDP write bits + row offset (from start of VRAM tilemap)
-        ex de, hl                                   ; hl = VDP col offset (from start of VRAM row)
-        add hl, bc                                  ; hl = VDP write bits + row offset + col offset
+        VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
+        ex de, hl                                   ; hl = VDP col offset (from start of row)
+        add hl, bc                                  ; hl = VDP write bits + start of row addr + col offset
         ld (RedrawColParams.VDPAddr1), hl
 
         ; prevent overdraw - don't draw the corner tile because RedrawRow also draws it
@@ -831,14 +824,7 @@
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in row, addr of first *visible* tile in row
         ld a, d                                     ; a = target VRAM row idx
-        add a, a                                    ; a = target VRAM row addr offset from VRAMRowAddrs
-        ld b, 0
-        ld c, a                                     ; bc = target VRAM row addr offset from VRAMRowAddrs
-        ld hl, VRAMRowAddrs
-        add hl, bc                                  ; hl = &VRAMRowAddrs + target VRAM row addr offset from VRAMRowAddrs
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = VDP write bits + addr of first tile of row
+        VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
         ld (RedrawRowParams.VDPAddr2), bc
         ld a, (FirstVisibleVRAMCol)                 ; a = first visible VRAM col idx
         add a, a                                    ; a = addr offset of first visible VRAM col
