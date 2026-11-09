@@ -126,11 +126,11 @@
         add hl, de                                  ; hl = BG tilemap row start addr + BG col offset from row start
         ret
 
-    ; Calcualtes the VRAM tilemap addr of the given index
-    ; Parameters: a = row idx, b = col idx
+    ; Calcualtes the VRAM tilemap addr of the first col of the given row index
+    ; Parameters: a = row idx
     ; Clobbers: a, de, hl
-    ; Sets: hl = calculated addr
-    VRAMAddr:
+    ; Sets: de = calculated addr
+    VRAMRowAddr:
         add a, a
         ld h, 0
         ld l, a                                     ; hl = VRAM row offset from VRAMRowAddrs
@@ -139,11 +139,6 @@
         ld e, (hl)                                  
         inc hl
         ld d, (hl)                                  ; de = VDP write bits + VDP tilemap row start addr
-        ld a, b
-        add a, a
-        ld h, 0
-        ld l, a                                     ; hl = VRAM col offset from row start
-        add hl, de                                  ; hl = VDP write bits + VDP tilemap row start addr + col offset from row start
         ret
 
     Init:
@@ -240,9 +235,9 @@
         
         ; calculte start addr in VRAM tilemap
         ld a, (FirstVisibleVRAMRow)
-        ld hl, FirstVisibleVRAMCol
-        ld b, (hl)
-        call VRAMAddr
+        call VRAMRowAddr
+        ld hl, (RedrawRows.VRAMInterval1)
+        add hl, de
 
         ; calculate how many rows to draw in from first vis.
         ; MIN(vis. row count, 28 - first vis. VRAM row idx)
