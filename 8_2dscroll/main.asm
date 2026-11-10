@@ -28,6 +28,8 @@
     BGInterval: dw
     ByteCount1: db
     ByteCount2: db
+    RowCount1: db
+    RowCount2: db
 .endst
 
 .struct RedrawRowParamsStruct
@@ -235,7 +237,7 @@
         ld hl, (RedrawRows.VRAMInterval1)
         add hl, bc
 
-        ; calculate how many rows to draw in from first vis.
+        ; calculate how many rows to draw from first vis. VRAM tilemap row to last tilemap row
         ; MIN(vis. row count, 28 - first vis. VRAM row idx)
         ld a, (FirstVisibleVRAMRow)
         ld b, a
@@ -244,7 +246,14 @@
         ld b, a
         ld a, (VisibleRowCount)
         MinB
-        ld b, a
+        ld (RedrawRows.RowCount1), a
+
+        ; calculate how many rows to draw from the first VRAM row to the last vis. VRAM row
+        ; vis. row count - MIN(vis. row count, 28 - first vis. VRAM row idx)
+        ld b, a                                     ; b = MIN(vis. row count, 28 - first vis. VRAM row idx)
+        ld a, (VisibleRowCount)
+        sub a, b                                    ; a = vis. row count - MIN(vis. row count, 28 - first vis. VRAM row idx)
+        ld (RedrawRows.RowCount2), a
 
         ; set port
         ld c, VDP_CTRL_PORT
@@ -266,6 +275,8 @@
             ld c, VDP_DATA_PORT
         exx
         
+        ld a, (RedrawRows.RowCount1)
+        ld b, a
         -:
             out (c), l
             out (c), h
@@ -302,6 +313,56 @@
             ld de, (RedrawRows.VRAMInterval2)
             add hl, de
         djnz -
+
+        ld a, (RedrawRows.RowCount2)
+        ; if there are no rows to draw, we're done
+        cp a, 0
+        jr z, ++
+
+        ; move VDP address to first row
+        ld de, (VRAMRowAddrs)
+        ld hl, (RedrawRows.VRAMInterval1)
+        add hl, de
+
+        ld b, a
+        -:
+            out (c), l
+            out (c), h
+            
+            ; draw from first vis. col
+            exx
+                ld a, (RedrawRows.ByteCount1)
+                ld b, a
+                otir
+            exx
+
+            ; move VRAMAddr back to start of row
+            ld de, (RedrawRows.VRAMInterval1)
+            or a
+            sbc hl, de                              ; hl =- first vis col offset
+
+            out (c), l
+            out (c), h
+
+            ; draw from first col
+            exx
+                ld a, (RedrawRows.ByteCount2)
+                cp a, 0
+                jr z, +
+                    ld b, a
+                    otir
+                +:
+                
+                ; move BGAddr to next line
+                add hl, de
+            exx
+
+            ; move VRAMAddr to first vis. col on next line
+            ld de, (RedrawRows.VRAMInterval2)
+            add hl, de
+        djnz -
+
+        ++:
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
