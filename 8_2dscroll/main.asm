@@ -107,24 +107,20 @@
 .ends
 
 .section "main"
-    ; Calcualtes the BG tilemap addr of the given index
-    ; Parameters: a = row idx, b = col idx
-    ; Clobbers: a, de, hl
-    ; Sets: hl = calculated addr
-    BGAddr:
+    ; Calcualtes the BG tilemap addr of the first col of the given row index
+    ; Parameters: a = row idx
+    ; Clobbers: bc, hl
+    ; Sets: bc = calculated addr
+    .macro BGRowAddr
         ld h, 0
         ld l, a
         add hl, hl                                  ; hl = BG row offset from BGAddrs
-        ld de, BGRowAddrs
-        add hl, de                                  ; hl = BGAddrs + BG row offset from BGAddrs
-        ld e, (hl)                                  
+        ld bc, BGRowAddrs
+        add hl, bc                                  ; hl = BGAddrs + BG row offset from BGAddrs
+        ld c, (hl)                                  
         inc hl
-        ld d, (hl)                                  ; de = BG tilemap row start addr
-        ld h, 0
-        ld l, b
-        add hl, hl                                  ; hl = BG col offset from row start
-        add hl, de                                  ; hl = BG tilemap row start addr + BG col offset from row start
-        ret
+        ld b, (hl)                                  ; bc = BG tilemap row start addr
+    .endm
 
     ; Calcualtes the VRAM tilemap addr of the first col of the given row index
     ; Parameters: a = row idx
@@ -256,9 +252,12 @@
         exx
             ; calculte start addr in BG tilemap
             ld a, (FirstVisibleBGRow)
-            ld hl, FirstVisibleBGCol
-            ld b, (hl)
-            call BGAddr
+            BGRowAddr
+            ld a, (FirstVisibleBGCol)
+            ld h, 0
+            ld l, a
+            add hl, hl                                  ; hl = BG col offset from row start
+            add hl, bc                                  ; hl = BG tilemap row start addr + BG col offset from row start
 
             ; set BG interval
             ld de, (RedrawRows.BGInterval)
@@ -638,14 +637,7 @@
 
         ; calculate BG tilemap addr of first visible tile in the column
         ld a, (FirstVisibleBGRow)                   ; a = row index
-        ld h, 0
-        ld l, a                                     ; hl = row index
-        add hl, hl                                  ; hl = row offset
-        ld bc, BGRowAddrs
-        add hl, bc                                  ; hl = BGRowAddrs + row offset (from BGRowAddrs)
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = Tilemap + row offset (from Tilemap)
+        BGRowAddr
         ld h, 0
         ld l, e                                     ; hl = col index
         add hl, hl                                  ; hl = col offset
@@ -787,14 +779,8 @@
         ++:
 
         ; calculate BG tilemap addr of first visible tile in the row
-        ld h, 0
-        ld l, e                                     ; hl = target BG row idx
-        add hl, hl                                  ; hl = target BG row addr offset from BGRowAddrs
-        ld bc, BGRowAddrs
-        add hl, bc                                  ; hl = &BGRowAddrs + target BG row addr offset from BGRowAddrs
-        ld c, (hl)
-        inc hl
-        ld b, (hl)                                  ; bc = addr of first tile of row in BG tilemap
+        ld a, e
+        BGRowAddr
         ld a, (FirstVisibleBGCol)                   ; a = first visible BG col idx
         ld h, 0
         ld l, a                                     ; hl = first visible BG col idx
