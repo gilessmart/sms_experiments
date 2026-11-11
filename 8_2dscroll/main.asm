@@ -6,8 +6,8 @@
 .define SCROLL_INCREMENT 5  ; max = 8
 .define BG_ROWS 64          ; rows in background
 .define BG_COLS 127         ; cols in background
-.define INIT_BG_POSX 0
-.define INIT_BG_POSY 0
+.define INIT_BG_POSX 84     ; initial x offset
+.define INIT_BG_POSY 92     ; initial y offset
 
 .memorymap
     defaultslot 0
