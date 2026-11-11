@@ -11,7 +11,7 @@
     ;   d = x coordinate
     ;   e = y coordinate
     ; Clobbers: hl
-    ; Updates: c is incremented by 1
+    ; Sets: c is incremented by 1
     SPRITES_SetSprite:
         ld hl, ShadowSAT        ; base address
         add hl, bc              ; add SAT index
@@ -38,8 +38,7 @@
     ;   d = x position
     ;   e = y position
     ; Clobbers: ix, hl, a, a'
-    ; Updates:
-    ;   c is incremented by the number of sprites written
+    ; Sets: c is incremented by the number of sprites written
     SPRITES_SetSprites:
         ex af, af'
 
