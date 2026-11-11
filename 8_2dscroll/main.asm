@@ -30,11 +30,6 @@
     ByteCount2: db      ; no. of bytes from the last visible tile on one line to the first visible tile of the next line in BG tilemap
 .endst
 
-.struct RowCountsStruct
-    RowCount1: db       ; no. of rows to draw from first visible to the last VRAM row
-    RowCount2: db       ; no. of rows to draw from the first VRAM row to the last visible
-.endst
-
 .struct RedrawRowParamsStruct
     BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
     VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the row
@@ -71,7 +66,6 @@
     RedrawRowParams: instanceof RedrawRowParamsStruct
     RedrawColParams: instanceof RedrawColParamsStruct
     RedrawRowsParams: instanceof RedrawRowsParamsStruct
-    BGRowCounts: instanceof RowCountsStruct
 .ends
 
 .bank 0
@@ -742,24 +736,6 @@
     DrawBG:
         call PrepRedrawBGRows
 
-        ; calculate how many rows to draw from first vis. VRAM tilemap row to last tilemap row
-        ; MIN(vis. row count, 28 - first vis. VRAM row idx)
-        ld a, (FirstVisibleVRAMRow)
-        ld b, a
-        ld a, 28
-        sub a, b
-        ld b, a
-        ld a, (VisibleRowCount)
-        MinB
-        ld (BGRowCounts.RowCount1), a
-        
-        ; calculate how many rows to draw from the first VRAM row to the last vis. VRAM row
-        ; vis. row count - MIN(vis. row count, 28 - first vis. VRAM row idx)
-        ld b, a                                     ; b = MIN(vis. row count, 28 - first vis. VRAM row idx)
-        ld a, (VisibleRowCount)
-        sub a, b                                    ; a = vis. row count - MIN(vis. row count, 28 - first vis. VRAM row idx)
-        ld (BGRowCounts.RowCount2), a
-        
         ; calculte start addr in VRAM tilemap
         ld a, (FirstVisibleVRAMRow)
         VRAMRowAddr
@@ -777,21 +753,37 @@
             add hl, bc                              ; hl = BG tilemap row start addr + BG col offset from row start
         exx
 
+        ; calculate how many rows to draw from first vis. VRAM tilemap row to last tilemap row
+        ; MIN(vis. row count, 28 - first vis. VRAM row idx)
+        ld a, (FirstVisibleVRAMRow)
+        ld b, a
+        ld a, 28
+        sub a, b
+        ld b, a
+        ld a, (VisibleRowCount)
+        MinB
+
         ; draw first set of rows
-        ld a, (BGRowCounts.RowCount1)
         ld b, a
         call RedrawBGRows
         
-        ; check how many rows to draw, skip if there are none
-        ld a, (BGRowCounts.RowCount2)
-        cp a, 0
+        ; calculate how many rows to draw from the first VRAM row to the last vis. VRAM row
+        ; first vis. VRAM row idx + vis. row count - 28
+        ld a, (VisibleRowCount)
+        ld b, a                                     ; b = vis. row count
+        ld a, (FirstVisibleVRAMRow)
+        add a, b                                    ; a = first vis. VRAM row idx + vis. row count
+        sub a, 28                                   ; a = first vis. VRAM row idx + vis. row count - 28
+        
+        ; skip if there are no rows to draw
+        ret c
         ret z
 
         ; move VDP address to first vis. col of first row
         ld de, (VRAMRowAddrs)
         ld hl, (RedrawRowsParams.VRAMInterval1)
         add hl, de
-        
+
         ; draw second set of rows
         ld b, a
         call RedrawBGRows
