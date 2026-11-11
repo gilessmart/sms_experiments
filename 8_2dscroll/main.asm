@@ -1,7 +1,7 @@
-.define REDRAW_COL_TARGET_FIRST 0
-.define REDRAW_COL_TARGET_LAST 1
-.define REDRAW_ROW_TARGET_FIRST 0
-.define REDRAW_ROW_TARGET_LAST 1
+.define DRAW_COL_TARGET_FIRST 0
+.define DRAW_COL_TARGET_LAST 1
+.define DRAW_ROW_TARGET_FIRST 0
+.define DRAW_ROW_TARGET_LAST 1
 
 .define SCROLL_INCREMENT 5  ; max = 8
 .define BG_ROWS 64          ; rows in background
@@ -22,7 +22,7 @@
     banks 2
 .endro
 
-.struct RedrawRowsParamsStruct
+.struct DrawRowsParamsStruct
     VRAMInterval1: dw   ; no. of bytes from the first col to the first visible col in the VRAM tilemap
     VRAMInterval2: dw   ; no. of bytes from the first col to the first visible col on the next line in the VRAM tilemap
     BGInterval: dw      ; no. of bytes from first visible tile of the VRAM tilemap to the last tile of the VRAM tilemap
@@ -30,7 +30,7 @@
     ByteCount2: db      ; no. of bytes from the last visible tile on one line to the first visible tile of the next line in BG tilemap
 .endst
 
-.struct RedrawRowParamsStruct
+.struct DrawRowParamsStruct
     BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
     VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the row
     ByteCount1: db      ; number of bytes to draw from VDPAddr1
@@ -38,7 +38,7 @@
     ByteCount2: db      ; number of bytes to draw from VDPAddr2
 .endst
 
-.struct RedrawColParamsStruct
+.struct DrawColParamsStruct
     BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
     VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the col
     RowCount1: db       ; number of tiles to draw from VDPAddr1
@@ -61,11 +61,11 @@
     LastVisibleVRAMCol: db
     FirstVisibleBGCol: db
     LastVisibleBGCol: db
-    RedrawColTarget: db
-    RedrawRowTarget: db
-    RedrawRowParams: instanceof RedrawRowParamsStruct
-    RedrawColParams: instanceof RedrawColParamsStruct
-    RedrawRowsParams: instanceof RedrawRowsParamsStruct
+    DrawColTarget: db
+    DrawRowTarget: db
+    DrawRowParams: instanceof DrawRowParamsStruct
+    DrawColParams: instanceof DrawColParamsStruct
+    DrawRowsParams: instanceof DrawRowsParamsStruct
 .ends
 
 .bank 0
@@ -93,8 +93,8 @@
     in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
 
     call UpdateBGScroll
-    call RedrawCol
-    call RedrawRow
+    call DrawCol
+    call DrawRow
 
     ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
 
@@ -188,13 +188,13 @@
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
 
-        ; prepare for redraw
-        ld a, REDRAW_ROW_TARGET_FIRST
-        ld (RedrawRowTarget), a
-        ld a, REDRAW_COL_TARGET_FIRST
-        ld (RedrawColTarget), a
-        call PrepRedrawRow
-        call PrepRedrawCol
+        ; prepare for row / col draws in VBlank
+        ld a, DRAW_ROW_TARGET_FIRST
+        ld (DrawRowTarget), a
+        ld a, DRAW_COL_TARGET_FIRST
+        ld (DrawColTarget), a
+        call PrepDrawRow
+        call PrepDrawCol
 
         ; read & clear VDP flags, clear interrupt request line..
         ; (forces the first interrupt to fire on the regular scanline, instead of ASAP, 
@@ -210,8 +210,8 @@
         in a, CTLR_PORT_AB
 
         ; scroll up / down
-        ld hl, RedrawRowTarget
-        ld (hl), REDRAW_ROW_TARGET_FIRST
+        ld hl, DrawRowTarget
+        ld (hl), DRAW_ROW_TARGET_FIRST
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
@@ -223,14 +223,14 @@
         jr nz, ++
             ex af, af'
                 call ScrollDown
-                ld hl, RedrawRowTarget
-                ld (hl), REDRAW_ROW_TARGET_LAST
+                ld hl, DrawRowTarget
+                ld (hl), DRAW_ROW_TARGET_LAST
             ex af, af'
         ++:
 
         ; scroll left / right
-        ld hl, RedrawColTarget
-        ld (hl), REDRAW_COL_TARGET_FIRST
+        ld hl, DrawColTarget
+        ld (hl), DRAW_COL_TARGET_FIRST
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
@@ -242,14 +242,14 @@
         jr nz, ++
             ex af, af'
                 call ScrollRight
-                ld hl, RedrawColTarget
-                ld (hl), REDRAW_COL_TARGET_LAST
+                ld hl, DrawColTarget
+                ld (hl), DRAW_COL_TARGET_LAST
             ex af, af'
         ++:
 
         call CalculateVisibleArea
-        call PrepRedrawRow
-        call PrepRedrawCol
+        call PrepDrawRow
+        call PrepDrawCol
 
         jr MainLoop
 
@@ -495,22 +495,22 @@
         ret
 .ends
 
-.section "redraw_background"
-    ; Sets the values used during VBlank by the RedrawCol routine
+.section "draw_background"
+    ; Sets the values used during VBlank by the DrawCol routine
     ; Clobbers: a, bc, de, hl
-    PrepRedrawCol:
+    PrepDrawCol:
         ; calculate target VDP & BG col indices
-        ld a, (RedrawColTarget)
-        cp REDRAW_COL_TARGET_LAST
+        ld a, (DrawColTarget)
+        cp DRAW_COL_TARGET_LAST
         jr z, +
-            ; redraw first col
+            ; draw first col
             ld a, (FirstVisibleVRAMCol)
             ld d, a                                 ; d = target VRAM col index
             ld a, (FirstVisibleBGCol)
             ld e, a                                 ; e = target BG col index
         jr ++
         +:
-            ; redraw last col
+            ; draw last col
             ld a, (LastVisibleVRAMCol)
             ld d, a                                 ; d = target VRAM col index
             ld a, (LastVisibleBGCol)
@@ -524,7 +524,7 @@
         ld l, e                                     ; hl = col index
         add hl, hl                                  ; hl = col offset
         add hl, bc                                  ; hl = Tilemap + row offset + col offset
-        ld (RedrawColParams.BGAddr), hl
+        ld (DrawColParams.BGAddr), hl
 
         ; calculate how many rows to draw between the first visible row and last row
         ld a, (VisibleRowCount)
@@ -533,13 +533,13 @@
         ld hl, FirstVisibleVRAMRow
         sub a, (hl)                                 ; a = 28 - first visible row idx
         MinB                                        ; a = MIN(28 - first visible row idx, visible row count)
-        ld (RedrawColParams.RowCount1), a
+        ld (DrawColParams.RowCount1), a
 
         ; calculate how many rows to draw between the first row and the last visible row
         ld c, a                                     ; c = MIN(28 - first visible row idx, visible row count)
         ld a, b                                     ; a = visible row count
         sub c                                       ; a = visible col count - MIN(28 - first visible row idx, visible row count)
-        ld (RedrawColParams.RowCount2), a
+        ld (DrawColParams.RowCount2), a
 
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in col, addr of first *visible* tile in col
@@ -549,64 +549,64 @@
         ld e, a                                     ; de = VDP col offset (from start of row)
         ld hl, (VRAMRowAddrs)                       ; hl = VDP write bits + VRAM base address
         add hl, de                                  ; hl = VDP write bits + VRAM base address + col offset
-        ld (RedrawColParams.VDPAddr2), hl
+        ld (DrawColParams.VDPAddr2), hl
         ld a, (FirstVisibleVRAMRow)                 ; a = row index
         VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
         ex de, hl                                   ; hl = VDP col offset (from start of row)
         add hl, bc                                  ; hl = VDP write bits + start of row addr + col offset
-        ld (RedrawColParams.VDPAddr1), hl
+        ld (DrawColParams.VDPAddr1), hl
 
-        ; prevent overdraw - don't draw the corner tile because RedrawRow also draws it
-        ld a, (RedrawRowTarget)
-        cp REDRAW_ROW_TARGET_LAST
+        ; prevent overdraw - don't draw the corner tile because DrawRow also draws it
+        ld a, (DrawRowTarget)
+        cp DRAW_ROW_TARGET_LAST
         jr z, +
-            ; redrawing first row
-            ld hl, RedrawColParams.RowCount1
+            ; drawing first row
+            ld hl, DrawColParams.RowCount1
             dec (hl)
 
-            ld hl, (RedrawColParams.BGAddr)
+            ld hl, (DrawColParams.BGAddr)
             ld bc, BG_COLS*2
             add hl, bc
-            ld (RedrawColParams.BGAddr), hl
+            ld (DrawColParams.BGAddr), hl
 
-            ld hl, (RedrawColParams.VDPAddr1)
+            ld hl, (DrawColParams.VDPAddr1)
             ld bc, 32*2
             add hl, bc
-            ld (RedrawColParams.VDPAddr1), hl
+            ld (DrawColParams.VDPAddr1), hl
         jr ++
         +:
-            ; redrawing last row..
-            ld a, (RedrawColParams.RowCount2)
+            ; drawing last row..
+            ld a, (DrawColParams.RowCount2)
             cp 0
             jr z, +
                 ; ..and RowCount2 > 0..
-                ld hl, RedrawColParams.RowCount2
+                ld hl, DrawColParams.RowCount2
                 dec (hl)
             jr ++
             +:
                 ; ..and RowCount2 = 0..
-                ld hl, RedrawColParams.RowCount1
+                ld hl, DrawColParams.RowCount1
                 dec (hl)
         ++:
         ret
 
     ; Sets a column in the VRAM tilemap
-    RedrawCol:
+    DrawCol:
         ; write first col group
         ld c, VDP_CTRL_PORT
         ld de, 64
         exx
-            ld hl, (RedrawColParams.BGAddr)
+            ld hl, (DrawColParams.BGAddr)
             ld c, VDP_DATA_PORT
             ld de, BG_COLS * 2 - 2
         exx
 
-        ld a, (RedrawColParams.RowCount1)
+        ld a, (DrawColParams.RowCount1)
         cp 0
         jr z, +
 
         ld b, a
-        ld hl, (RedrawColParams.VDPAddr1)
+        ld hl, (DrawColParams.VDPAddr1)
         -:
             out (c), l
             out (c), h
@@ -620,12 +620,12 @@
 
         ; write the second col group
         +:
-        ld a, (RedrawColParams.RowCount2)
+        ld a, (DrawColParams.RowCount2)
         cp 0
         ret z
 
         ld b, a
-        ld hl, (RedrawColParams.VDPAddr2)
+        ld hl, (DrawColParams.VDPAddr2)
         -:
             out (c), l
             out (c), h
@@ -639,21 +639,21 @@
         
         ret
 
-    ; Sets values used during VBlank by the RedrawRow routine
+    ; Sets values used during VBlank by the DrawRow routine
     ; Clobbers: a, bc, de, hl
-    PrepRedrawRow:
+    PrepDrawRow:
         ; calculate target VDP & BG row indices
-        ld a, (RedrawRowTarget)
-        cp REDRAW_ROW_TARGET_LAST
+        ld a, (DrawRowTarget)
+        cp DRAW_ROW_TARGET_LAST
         jr z, +
-            ; redraw first row
+            ; draw first row
             ld a, (FirstVisibleVRAMRow)
             ld d, a
             ld a, (FirstVisibleBGRow)
             ld e, a
         jr ++
         +:
-            ; redraw last row
+            ; draw last row
             ld a, (LastVisibleVRAMRow)
             ld d, a
             ld a, (LastVisibleBGRow)
@@ -668,7 +668,7 @@
         ld l, a                                     ; hl = first visible BG col idx
         add hl, hl                                  ; hl = addr offset of first visible BG col idx from start of row
         add hl, bc                                  ; hl = addr of first visible tile in BG tilemap
-        ld (RedrawRowParams.BGAddr), hl
+        ld (DrawRowParams.BGAddr), hl
 
         ; calculate how many bytes to send to the VDP 
         ; (when drawing from first visible tile in row to last tile in row)
@@ -679,7 +679,7 @@
         sub a, (hl)                                 ; a = 32 - first visible col idx
         MinB                                        ; a = MIN(32 - first visible col idx, visible col count)
         add a, a                                    ; a = MIN(32 - first visible col idx, visible col count) * 2
-        ld (RedrawRowParams.ByteCount1), a
+        ld (DrawRowParams.ByteCount1), a
 
         ; calculate how many bytes to send to the VDP
         ; (when drawing from first tile in row to last visible tile in row)
@@ -687,41 +687,41 @@
         ld a, b                                     ; a = visible col count
         add a, a                                    ; a = visible col count * 2
         sub c                                       ; a = (visible col count - MIN(32 - first visible col idx, visible cols) * 2
-        ld (RedrawRowParams.ByteCount2), a
+        ld (DrawRowParams.ByteCount2), a
         
         ; calculate VRAM tilemap addresses (inc. write bits):
         ; addr of first tile in row, addr of first *visible* tile in row
         ld a, d                                     ; a = target VRAM row idx
         VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
-        ld (RedrawRowParams.VDPAddr2), bc
+        ld (DrawRowParams.VDPAddr2), bc
         ld a, (FirstVisibleVRAMCol)                 ; a = first visible VRAM col idx
         add a, a                                    ; a = addr offset of first visible VRAM col
         ld h, 0
         ld l, a                                     ; hl = addr offset of first visible VRAM col
         add hl, bc                                  ; hl = VDP write bits + addr of first tile to draw
-        ld (RedrawRowParams.VDPAddr1), hl
+        ld (DrawRowParams.VDPAddr1), hl
         
         ret
 
     ; Sets a row in the VRAM tilemap
-    RedrawRow:        
-        ld hl, (RedrawRowParams.BGAddr)
+    DrawRow:        
+        ld hl, (DrawRowParams.BGAddr)
 
-        ld de, (RedrawRowParams.VDPAddr1)
+        ld de, (DrawRowParams.VDPAddr1)
         ld c, VDP_CTRL_PORT
         out (c), e
         out (c), d
 
-        ld a, (RedrawRowParams.ByteCount1)
+        ld a, (DrawRowParams.ByteCount1)
         ld b, a
         ld c, VDP_DATA_PORT
         otir
 
-        ld a, (RedrawRowParams.ByteCount2)
+        ld a, (DrawRowParams.ByteCount2)
         cp 0
         ret z
 
-        ld de, (RedrawRowParams.VDPAddr2)
+        ld de, (DrawRowParams.VDPAddr2)
         ld c, VDP_CTRL_PORT
         out (c), e
         out (c), d
@@ -734,12 +734,12 @@
 
     ; Populates the full VRAM tilemap based on current background & VRAM tilemap position
     DrawBG:
-        call PrepRedrawBGRows
+        call PrepDrawRows
 
         ; calculte start addr in VRAM tilemap
         ld a, (FirstVisibleVRAMRow)
         VRAMRowAddr
-        ld hl, (RedrawRowsParams.VRAMInterval1)
+        ld hl, (DrawRowsParams.VRAMInterval1)
         add hl, bc
         
         ; calculte start addr in BG tilemap
@@ -765,7 +765,7 @@
 
         ; draw first set of rows
         ld b, a
-        call RedrawBGRows
+        call DrawRows
         
         ; calculate how many rows to draw from the first VRAM row to the last vis. VRAM row
         ; first vis. VRAM row idx + vis. row count - 28
@@ -781,27 +781,27 @@
 
         ; move VDP address to first vis. col of first row
         ld de, (VRAMRowAddrs)
-        ld hl, (RedrawRowsParams.VRAMInterval1)
+        ld hl, (DrawRowsParams.VRAMInterval1)
         add hl, de
 
         ; draw second set of rows
         ld b, a
-        call RedrawBGRows
+        call DrawRows
         
         ret
 
-    PrepRedrawBGRows:
+    PrepDrawRows:
         ; store interval from first col to first vis. col (bytes)
         ld a, (FirstVisibleVRAMCol)
         add a, a
         ld h, 0
         ld l, a
-        ld (RedrawRowsParams.VRAMInterval1), hl
+        ld (DrawRowsParams.VRAMInterval1), hl
 
         ; store interval from first col to first vis. col on next row (bytes)
         ld de, 64
         add hl, de
-        ld (RedrawRowsParams.VRAMInterval2), hl
+        ld (DrawRowsParams.VRAMInterval2), hl
 
         ; store BG tilemap interval (bytes) from the end of one line to the start of the next
         ; (BG_COLS - VisColCount) * 2
@@ -812,7 +812,7 @@
         ld h, 0
         ld l, a
         add hl, hl
-        ld (RedrawRowsParams.BGInterval), hl
+        ld (DrawRowsParams.BGInterval), hl
 
         ; calculate how many bytes to output when drawing from first vis.
         ; MIN(vis. col count, 32 - first vis. VRAM col idx)
@@ -824,7 +824,7 @@
         ld a, (VisibleColCount)
         MinB
         add a, a
-        ld (RedrawRowsParams.ByteCount1), a
+        ld (DrawRowsParams.ByteCount1), a
 
         ; calculate how many bytes to draw from first
         ; vis col count * 2 - bytes from first vis.
@@ -832,23 +832,23 @@
         ld a, (VisibleColCount)
         add a, a
         sub a, b
-        ld (RedrawRowsParams.ByteCount2), a
+        ld (DrawRowsParams.ByteCount2), a
 
         ret
 
-    ; Redraw a set of background rows
+    ; Draw a set of background rows
     ; Params: 
     ;   b = row count
     ;   hl = addr of first visible tile in the VDP tilemap
     ;   hl' = addr of first visible tile in the BG tilemap
-    ;   RedrawRowsParams
+    ;   DrawRowsParams
     ; Clobbers: a, bc, de, hl, bc', de', hl'
     ; Sets: hl' = addr of tile following those that have been drawn
-    RedrawBGRows:
+    DrawRows:
         ld c, VDP_CTRL_PORT
 
         exx
-            ld de, (RedrawRowsParams.BGInterval)
+            ld de, (DrawRowsParams.BGInterval)
             ld c, VDP_DATA_PORT
         exx
 
@@ -858,13 +858,13 @@
             
             ; draw from first vis. col
             exx
-                ld a, (RedrawRowsParams.ByteCount1)
+                ld a, (DrawRowsParams.ByteCount1)
                 ld b, a
                 otir
             exx
 
             ; move VRAMAddr back to start of row
-            ld de, (RedrawRowsParams.VRAMInterval1)
+            ld de, (DrawRowsParams.VRAMInterval1)
             or a
             sbc hl, de                              ; hl =- first vis col offset
 
@@ -873,7 +873,7 @@
 
             ; draw from first col
             exx
-                ld a, (RedrawRowsParams.ByteCount2)
+                ld a, (DrawRowsParams.ByteCount2)
                 cp a, 0
                 jr z, +
                     ld b, a
@@ -885,7 +885,7 @@
             exx
 
             ; move VRAMAddr to first vis. col on next line
-            ld de, (RedrawRowsParams.VRAMInterval2)
+            ld de, (DrawRowsParams.VRAMInterval2)
             add hl, de
         djnz -
 
