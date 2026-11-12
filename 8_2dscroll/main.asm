@@ -13,7 +13,7 @@
     defaultslot 0
     slot 0 $0000 $4000  ; 16K ROM
     slot 1 $4000 $4000  ; 16K ROM
-    slot 2 $c000 $2000  ; 8K RAM
+    slot 2 $c000 $2000 "RAMSlot" ; 8K RAM
 .endme
 
 .rombankmap
@@ -46,7 +46,7 @@
     RowCount2: db       ; number of tiles to draw from VDPAddr2
 .endst
 
-.ramsection "main_state" slot 2
+.ramsection "main_state" slot "RAMSlot"
     VDPScrollX: db
     VDPScrollY: db
     BGScrollX: dw
