@@ -147,8 +147,6 @@
         VDP_SetRegister 5, $ff       ; SAT base address ($ff gives base address of $3f00)
         VDP_SetRegister 6, $ff       ; sprite pattern table at $2000
         VDP_SetRegister 7, 0         ; BG color (from sprite palette)
-        VDP_SetRegister 8, 0         ; BG X Scroll
-        VDP_SetRegister 9, 0         ; BG Y Scroll
         VDP_SetRegister 10, $ff      ; line interrupt line counter
 
         ; populate SAT
