@@ -22,6 +22,19 @@
     banks 2
 .endro
 
+.struct VisibleAreaStruct
+    RowCount: db
+    ColCount: db
+    FirstBGRow: db
+    LastBGRow: db
+    FirstBGCol: db
+    LastBGCol: db
+    FirstVRAMRow: db
+    LastVRAMRow: db
+    FirstVRAMCol: db
+    LastVRAMCol: db
+.endst
+
 .struct DrawRowsParamsStruct
     VRAMInterval1: dw   ; no. of bytes from the first col to the first visible col in the VRAM tilemap
     VRAMInterval2: dw   ; no. of bytes from the first col to the first visible col on the next line in the VRAM tilemap
@@ -51,18 +64,9 @@
     VDPScrollY: db
     BGScrollX: dw
     BGScrollY: dw
-    VisibleRowCount: db
-    FirstVisibleVRAMRow: db
-    LastVisibleVRAMRow: db
-    FirstVisibleBGRow: db
-    LastVisibleBGRow: db
-    VisibleColCount: db
-    FirstVisibleVRAMCol: db
-    LastVisibleVRAMCol: db
-    FirstVisibleBGCol: db
-    LastVisibleBGCol: db
     DrawColTarget: db
     DrawRowTarget: db
+    VisibleArea: instanceof VisibleAreaStruct
     DrawRowParams: instanceof DrawRowParamsStruct
     DrawColParams: instanceof DrawColParamsStruct
     DrawRowsParams: instanceof DrawRowsParamsStruct
@@ -251,14 +255,14 @@
 
         jr MainLoop
 
-    ; Calculates and stores the first & last visible row & col indices, and the number of visible rows & cols
+    ; Populates VisibleArea
     ; Clobbers: a, bc, de, hl
     CalculateVisibleArea:
         ;; Rows ;;
 
-        ; calculate VisibleRowCount
+        ; calculate RowCount
         ld a, (VDPScrollY)
-        ld b, a                                     ; store VDPScroll value for calculating VisibleRowCount
+        ld b, a                                     ; store VDPScroll value for calculating FirstVRAMRow
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 25
@@ -266,40 +270,40 @@
         +:
             ld a, 24
         ++:
-        ld (VisibleRowCount), a
+        ld (VisibleArea.RowCount), a
 
         ; store difference between last and first row for calculating last rows
         dec a                                       
         ld c, a
 
-        ; calculate FirstVisibleVRAMRow
+        ; calculate FirstVRAMRow
         ld a, b
         ShiftRightA 3
-        ld (FirstVisibleVRAMRow), a
+        ld (VisibleArea.FirstVRAMRow), a
 
-        ; calculate LastVisibleVRAMRow
-        add a, c                                    ; a = FirstVisibleVRAMRow + difference
+        ; calculate LastVRAMRow
+        add a, c                                    ; a = FirstVRAMRow + difference
         cp 28                                       ; apply modulo 28..
         jr c, +                                     ; jump forward if a < 28
             sub a, 28                               ; otherwise, subtract 28    
         +:
-        ld (LastVisibleVRAMRow), a
+        ld (VisibleArea.LastVRAMRow), a
 
-        ; calculate FirstVisibleBGRow
+        ; calculate FirstBGRow
         ld hl, (BGScrollY)
         ShiftRightHL 3
         ld a, l
-        ld (FirstVisibleBGRow), a
+        ld (VisibleArea.FirstBGRow), a
 
-        ; calculate LastVisibleBGRow
-        add a, c                                    ; a = FirstVisibleBGRow + difference
-        ld (LastVisibleBGRow), a
+        ; calculate LastBGRow
+        add a, c                                    ; a = FirstBGRow + difference
+        ld (VisibleArea.LastBGRow), a
 
         ;; Cols ;;
 
-        ; calculate VisibleColCount
+        ; calculate ColCount
         ld a, (VDPScrollX)
-        ld b, a                                     ; store VDPScrollX for calculating FirstVisibleVRAMCol
+        ld b, a                                     ; store VDPScrollX for calculating FirstVRAMCol
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 32
@@ -307,34 +311,34 @@
         +:
             ld a, 31
         ++:
-        ld (VisibleColCount), a
+        ld (VisibleArea.ColCount), a
 
         ; store difference between last and first row for calculating last cols
         dec a                                       
         ld c, a
 
-        ; calculate FirstVisibleVRAMCol
+        ; calculate FirstVRAMCol
         ld a, b                                     ; a = VDPScrollX
         add a, 8
         ShiftRightA 3
-        ld (FirstVisibleVRAMCol), a
+        ld (VisibleArea.FirstVRAMCol), a
 
-        ; calculate LastVisibleVRAMCol
-        add a, c                                    ; a = FirstVisibleVRAMCol + difference
+        ; calculate LastVRAMCol
+        add a, c                                    ; a = FirstVRAMCol + difference
         and 31                                      ; apply modulo 32
-        ld (LastVisibleVRAMCol), a
+        ld (VisibleArea.LastVRAMCol), a
 
-        ; calculate FirstVisibleBGCol
+        ; calculate FirstBGCol
         ld hl, (BGScrollX)
         ld de, 8
         add hl, de
         ShiftRightHL 3
         ld a, l
-        ld (FirstVisibleBGCol), a
+        ld (VisibleArea.FirstBGCol), a
 
-        ; calculate LastVisibleBGCol
-        add a, c                                    ; a = FirstVisibleBGCol + difference
-        ld (LastVisibleBGCol), a
+        ; calculate LastBGCol
+        add a, c                                    ; a = FirstBGCol + difference
+        ld (VisibleArea.LastBGCol), a
 
         ret
 
@@ -502,21 +506,21 @@
         cp DRAW_COL_TARGET_LAST
         jr z, +
             ; draw first col
-            ld a, (FirstVisibleVRAMCol)
+            ld a, (VisibleArea.FirstVRAMCol)
             ld d, a                                 ; d = target VRAM col index
-            ld a, (FirstVisibleBGCol)
+            ld a, (VisibleArea.FirstBGCol)
             ld e, a                                 ; e = target BG col index
         jr ++
         +:
             ; draw last col
-            ld a, (LastVisibleVRAMCol)
+            ld a, (VisibleArea.LastVRAMCol)
             ld d, a                                 ; d = target VRAM col index
-            ld a, (LastVisibleBGCol)
+            ld a, (VisibleArea.LastBGCol)
             ld e, a                                 ; e = target BG col index
         ++:
 
         ; calculate BG tilemap addr of first visible tile in the column
-        ld a, (FirstVisibleBGRow)                   ; a = row index
+        ld a, (VisibleArea.FirstBGRow)              ; a = row index
         BGRowAddr
         ld h, 0
         ld l, e                                     ; hl = col index
@@ -525,10 +529,10 @@
         ld (DrawColParams.BGAddr), hl
 
         ; calculate how many rows to draw between the first visible row and last row
-        ld a, (VisibleRowCount)
+        ld a, (VisibleArea.RowCount)
         ld b, a                                     ; b = visible row count
         ld a, 28                                    ; a = 28
-        ld hl, FirstVisibleVRAMRow
+        ld hl, VisibleArea.FirstVRAMRow
         sub a, (hl)                                 ; a = 28 - first visible row idx
         MinB                                        ; a = MIN(28 - first visible row idx, visible row count)
         ld (DrawColParams.RowCount1), a
@@ -548,7 +552,7 @@
         ld hl, (VRAMRowAddrs)                       ; hl = VDP write bits + VRAM base address
         add hl, de                                  ; hl = VDP write bits + VRAM base address + col offset
         ld (DrawColParams.VDPAddr2), hl
-        ld a, (FirstVisibleVRAMRow)                 ; a = row index
+        ld a, (VisibleArea.FirstVRAMRow)            ; a = row index
         VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
         ex de, hl                                   ; hl = VDP col offset (from start of row)
         add hl, bc                                  ; hl = VDP write bits + start of row addr + col offset
@@ -645,23 +649,23 @@
         cp DRAW_ROW_TARGET_LAST
         jr z, +
             ; draw first row
-            ld a, (FirstVisibleVRAMRow)
+            ld a, (VisibleArea.FirstVRAMRow)
             ld d, a
-            ld a, (FirstVisibleBGRow)
+            ld a, (VisibleArea.FirstBGRow)
             ld e, a
         jr ++
         +:
             ; draw last row
-            ld a, (LastVisibleVRAMRow)
+            ld a, (VisibleArea.LastVRAMRow)
             ld d, a
-            ld a, (LastVisibleBGRow)
+            ld a, (VisibleArea.LastBGRow)
             ld e, a
         ++:
 
         ; calculate BG tilemap addr of first visible tile in the row
         ld a, e
         BGRowAddr
-        ld a, (FirstVisibleBGCol)                   ; a = first visible BG col idx
+        ld a, (VisibleArea.FirstBGCol)              ; a = first visible BG col idx
         ld h, 0
         ld l, a                                     ; hl = first visible BG col idx
         add hl, hl                                  ; hl = addr offset of first visible BG col idx from start of row
@@ -670,10 +674,10 @@
 
         ; calculate how many bytes to send to the VDP 
         ; (when drawing from first visible tile in row to last tile in row)
-        ld a, (VisibleColCount)
+        ld a, (VisibleArea.ColCount)
         ld b, a                                     ; b = visible col count
         ld a, 32                                    ; a = 32
-        ld hl, FirstVisibleVRAMCol
+        ld hl, VisibleArea.FirstVRAMCol
         sub a, (hl)                                 ; a = 32 - first visible col idx
         MinB                                        ; a = MIN(32 - first visible col idx, visible col count)
         add a, a                                    ; a = MIN(32 - first visible col idx, visible col count) * 2
@@ -692,7 +696,7 @@
         ld a, d                                     ; a = target VRAM row idx
         VRAMRowAddr                                 ; bc = VDP write bits + start of row addr
         ld (DrawRowParams.VDPAddr2), bc
-        ld a, (FirstVisibleVRAMCol)                 ; a = first visible VRAM col idx
+        ld a, (VisibleArea.FirstVRAMCol)            ; a = first visible VRAM col idx
         add a, a                                    ; a = addr offset of first visible VRAM col
         ld h, 0
         ld l, a                                     ; hl = addr offset of first visible VRAM col
@@ -735,16 +739,16 @@
         call PrepDrawRows
 
         ; calculte start addr in VRAM tilemap
-        ld a, (FirstVisibleVRAMRow)
+        ld a, (VisibleArea.FirstVRAMRow)
         VRAMRowAddr
         ld hl, (DrawRowsParams.VRAMInterval1)
         add hl, bc
         
         ; calculte start addr in BG tilemap
         exx
-            ld a, (FirstVisibleBGRow)
+            ld a, (VisibleArea.FirstBGRow)
             BGRowAddr
-            ld a, (FirstVisibleBGCol)
+            ld a, (VisibleArea.FirstBGCol)
             ld h, 0
             ld l, a
             add hl, hl                              ; hl = BG col offset from row start
@@ -753,12 +757,12 @@
 
         ; calculate how many rows to draw from first vis. VRAM tilemap row to last tilemap row
         ; MIN(vis. row count, 28 - first vis. VRAM row idx)
-        ld a, (FirstVisibleVRAMRow)
+        ld a, (VisibleArea.FirstVRAMRow)
         ld b, a
         ld a, 28
         sub a, b
         ld b, a
-        ld a, (VisibleRowCount)
+        ld a, (VisibleArea.RowCount)
         MinB
 
         ; draw first set of rows
@@ -767,9 +771,9 @@
         
         ; calculate how many rows to draw from the first VRAM row to the last vis. VRAM row
         ; first vis. VRAM row idx + vis. row count - 28
-        ld a, (VisibleRowCount)
+        ld a, (VisibleArea.RowCount)
         ld b, a                                     ; b = vis. row count
-        ld a, (FirstVisibleVRAMRow)
+        ld a, (VisibleArea.FirstVRAMRow)
         add a, b                                    ; a = first vis. VRAM row idx + vis. row count
         sub a, 28                                   ; a = first vis. VRAM row idx + vis. row count - 28
         
@@ -790,7 +794,7 @@
 
     PrepDrawRows:
         ; store interval from first col to first vis. col (bytes)
-        ld a, (FirstVisibleVRAMCol)
+        ld a, (VisibleArea.FirstVRAMCol)
         add a, a
         ld h, 0
         ld l, a
@@ -803,7 +807,7 @@
 
         ; store BG tilemap interval (bytes) from the end of one line to the start of the next
         ; (BG_COLS - VisColCount) * 2
-        ld a, (VisibleColCount)
+        ld a, (VisibleArea.ColCount)
         ld b, a
         ld a, BG_COLS
         sub a, b
@@ -814,12 +818,12 @@
 
         ; calculate how many bytes to output when drawing from first vis.
         ; MIN(vis. col count, 32 - first vis. VRAM col idx)
-        ld a, (FirstVisibleVRAMCol)
+        ld a, (VisibleArea.FirstVRAMCol)
         ld b, a
         ld a, 32
         sub a, b
         ld b, a
-        ld a, (VisibleColCount)
+        ld a, (VisibleArea.ColCount)
         MinB
         add a, a
         ld (DrawRowsParams.ByteCount1), a
@@ -827,7 +831,7 @@
         ; calculate how many bytes to draw from first
         ; vis col count * 2 - bytes from first vis.
         ld b, a
-        ld a, (VisibleColCount)
+        ld a, (VisibleArea.ColCount)
         add a, a
         sub a, b
         ld (DrawRowsParams.ByteCount2), a
