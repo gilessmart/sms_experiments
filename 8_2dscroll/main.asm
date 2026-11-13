@@ -22,6 +22,21 @@
     banks 2
 .endro
 
+.struct Coord
+    X: db
+    Y: db
+.endst
+
+.struct CoordW
+    X: dw
+    Y: dw
+.endst
+
+.struct ScrollOffsetsStruct
+    BG: instanceof CoordW
+    VDP: instanceof Coord
+.endst
+
 .struct VisibleAreaStruct
     RowCount: db
     ColCount: db
@@ -60,10 +75,7 @@
 .endst
 
 .ramsection "main_state" slot "RAMSlot"
-    VDPScrollX: db
-    VDPScrollY: db
-    BGScrollX: dw
-    BGScrollY: dw
+    ScrollOffsets: instanceof ScrollOffsetsStruct
     DrawColTarget: db
     DrawRowTarget: db
     VisibleArea: instanceof VisibleAreaStruct
@@ -174,13 +186,13 @@
 
         ; initialise scroll offsets
         ld a, INIT_BG_POSX # 256
-        ld (VDPScrollX), a
+        ld (ScrollOffsets.VDP.X), a
         ld a, INIT_BG_POSY # 224
-        ld (VDPScrollY), a
+        ld (ScrollOffsets.VDP.Y), a
         ld bc, INIT_BG_POSX
-        ld (BGScrollX), bc
+        ld (ScrollOffsets.BG.X), bc
         ld bc, INIT_BG_POSY
-        ld (BGScrollY), bc
+        ld (ScrollOffsets.BG.Y), bc
 
         ; draw the background
         call CalculateVisibleArea
@@ -261,8 +273,8 @@
         ;; Rows ;;
 
         ; calculate RowCount
-        ld a, (VDPScrollY)
-        ld b, a                                     ; store VDPScroll value for calculating FirstVRAMRow
+        ld a, (ScrollOffsets.VDP.Y)
+        ld b, a                                     ; store VDP scroll value for calculating FirstVRAMRow
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 25
@@ -290,7 +302,7 @@
         ld (VisibleArea.LastVRAMRow), a
 
         ; calculate FirstBGRow
-        ld hl, (BGScrollY)
+        ld hl, (ScrollOffsets.BG.Y)
         ShiftRightHL 3
         ld a, l
         ld (VisibleArea.FirstBGRow), a
@@ -302,8 +314,8 @@
         ;; Cols ;;
 
         ; calculate ColCount
-        ld a, (VDPScrollX)
-        ld b, a                                     ; store VDPScrollX for calculating FirstVRAMCol
+        ld a, (ScrollOffsets.VDP.X)
+        ld b, a                                     ; store VDP scroll value for calculating FirstVRAMCol
         and 7                                       ; a = fine scroll value
         jr z, +                                     ; skip forward if a = 0
             ld a, 32
@@ -318,7 +330,7 @@
         ld c, a
 
         ; calculate FirstVRAMCol
-        ld a, b                                     ; a = VDPScrollX
+        ld a, b                                     ; a = VDP.X
         add a, 8
         ShiftRightA 3
         ld (VisibleArea.FirstVRAMCol), a
@@ -329,7 +341,7 @@
         ld (VisibleArea.LastVRAMCol), a
 
         ; calculate FirstBGCol
-        ld hl, (BGScrollX)
+        ld hl, (ScrollOffsets.BG.X)
         ld de, 8
         add hl, de
         ShiftRightHL 3
@@ -345,7 +357,7 @@
     ; Decrements vertical scroll values
     ; Clobbers: a, bc, de, hl
     ScrollUp:
-        ld hl, (BGScrollY)
+        ld hl, (ScrollOffsets.BG.Y)
 
         ; if distance is 0, nothing to do
         ld a, h
@@ -359,26 +371,26 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; reduce VDPScrollY by clamped value
-        ld a, (VDPScrollY)
+        ; reduce VDP.Y by clamped value
+        ld a, (ScrollOffsets.VDP.Y)
         sub a, l
-        jr nc, +                ; skip if no carry i.e. if a < 0
+        jr nc, +                                    ; skip if no carry i.e. if a < 0
             add a, 224
         +:     
-        ld (VDPScrollY), a
+        ld (ScrollOffsets.VDP.Y), a
 
-        ; reduce BGScrollY by clamped value
-        ex de, hl               ; hl = BGScrollY
-        or a                    ; clear carry flag
-        sbc hl, de              ; hl = BGScrollY - scroll distance
-        ld (BGScrollY), hl      ; BGScrollY = BGScrollY - scroll distance
+        ; reduce BG.Y by clamped value
+        ex de, hl                                   ; hl = BG.Y
+        or a                                        ; clear carry flag
+        sbc hl, de                                  ; hl = BG.Y - scroll distance
+        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y - scroll distance
 
         ret
 
     ; Increments vertical scroll values
     ; Clobbers: a, bc, de, hl
     ScrollDown:
-        ld hl, (BGScrollY)
+        ld hl, (ScrollOffsets.BG.Y)
 
         ; swap it into de
         ex de, hl
@@ -396,60 +408,60 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; increase VDPScrollY by clamped value
-        ld a, (VDPScrollY)
+        ; increase VDP.Y by clamped value
+        ld a, (ScrollOffsets.VDP.Y)
         add a, l
         cp 224
         jr c, +                 ; skip if carry i.e. if a < 224
             sub a, 224
         +:
-        ld (VDPScrollY), a
+        ld (ScrollOffsets.VDP.Y), a
 
-        ; increase BGScrollY by clamped value
-        ex de, hl               ; hl = BGScrollY
-        add hl, de              ; hl = BGScrollY + scroll distance
-        ld (BGScrollY), hl      ; BGScrollX = BGScrollY + scroll distance
+        ; increase BG.Y by clamped value
+        ex de, hl                                   ; hl = BG.Y
+        add hl, de                                  ; hl = BG.Y + scroll distance
+        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y + scroll distance
 
         ret
 
     ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
     ; Clobbers: a, hl, bc, de
     ScrollLeft:
-        ; load current value of BGScrollX from RAM
-        ld hl, (BGScrollX)
+        ; load current value of BG.X from RAM
+        ld hl, (ScrollOffsets.BG.X)
 
-        ; the current value of BGScrollX is the max available scroll distance
+        ; the current value of BG.X is the max available scroll distance
 
         ; if distance is 0, nothing to do
         ld a, h
         or l
         ret z
 
-        ; store original BGScrollX value for later
+        ; store original BG.X value for later
         ld d, h
         ld e, l
 
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; reduce VDPScrollX by clamped value
-        ld a, (VDPScrollX)
+        ; reduce VDP.X by clamped value
+        ld a, (ScrollOffsets.VDP.X)
         sub a, l
-        ld (VDPScrollX), a
+        ld (ScrollOffsets.VDP.X), a
 
-        ; reduce BGScrollX by clamped value
-        ex de, hl               ; hl = BGScrollX
-        or a                    ; clear carry flag
-        sbc hl, de              ; hl = BGScrollX - scroll distance
-        ld (BGScrollX), hl      ; BGScrollX = BGScrollX - scroll distance
+        ; reduce BG.X by clamped value
+        ex de, hl                                   ; hl = BG.X
+        or a                                        ; clear carry flag
+        sbc hl, de                                  ; hl = BG.X - scroll distance
+        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X - scroll distance
 
         ret
     
     ; Increments scroll values & sets which column of the background gets shown on the right of the screen
     ; Clobbers: a, hl, bc, de
     ScrollRight:
-        ; load current value of BGScrollX from RAM
-        ld hl, (BGScrollX)
+        ; load current value of BG.X from RAM
+        ld hl, (ScrollOffsets.BG.X)
 
         ; swap it into de
         ex de, hl
@@ -467,15 +479,15 @@
         ; clamp hl value to the size of the scroll increment
         call ClampToScrollIncrement
 
-        ; increase VDPScrollX by clamped value
-        ld a, (VDPScrollX)
+        ; increase VDP.X by clamped value
+        ld a, (ScrollOffsets.VDP.X)
         add a, l
-        ld (VDPScrollX), a
+        ld (ScrollOffsets.VDP.X), a
 
-        ; increase BGScrollX by clamped value
-        ex de, hl               ; hl = BGScrollX
-        add hl, de              ; hl = BGScrollX + scroll distance
-        ld (BGScrollX), hl      ; BGScrollX = BGScrollX + scroll distance
+        ; increase BG.X by clamped value
+        ex de, hl                                   ; hl = BG.X
+        add hl, de                                  ; hl = BG.X + scroll distance
+        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X + scroll distance
 
         ret
 
@@ -895,15 +907,15 @@
 
     UpdateBGScroll:
         ; invert scroll offset & copy to VDP
-        ld a, (VDPScrollX)
-        ld l, a                 ; l = VDPScrollX
+        ld a, (ScrollOffsets.VDP.X)
+        ld l, a                 ; l = VDP.X
         ld a, 0
-        sub l                   ; a = 256 - VDPScrollX
-        ld l, a                 ; l = 256 - VDPScrollX
+        sub l                   ; a = 256 - VDP.X
+        ld l, a                 ; l = 256 - VDP.X
         VDP_SetRegister 8
 
         ; copy Y scroll value to VDP
-        ld a, (VDPScrollY)
+        ld a, (ScrollOffsets.VDP.Y)
         ld l, a
         VDP_SetRegister 9
 
