@@ -106,14 +106,9 @@
 
 .org $0038
 .section "interrupt_handler" force
-    in a, (VDP_CTRL_PORT)  ; read & clear VDP flags, clear interrupt request line
-
-    call UpdateBGScroll
-    call DrawCol
-    call DrawRow
-
-    ei  ; re-enable interrupts  - they're turned off automatically when an interrupt is accepted
-
+    in a, (VDP_CTRL_PORT)   ; read & clear VDP flags, clear interrupt request line
+    call UpdateBG
+    ei                      ; re-enable interrupts (they're turned off automatically when an interrupt is accepted)
     reti
 .ends
 
@@ -920,6 +915,13 @@
         VDP_SetRegister 9
 
         ret
+
+    UpdateBG:
+        call UpdateBGScroll
+        call DrawCol
+        call DrawRow
+        ret
+
 .ends
 
 .section "row_addr_tables"
