@@ -32,12 +32,12 @@
     Y: dw
 .endst
 
-.struct ScrollOffsetsStruct
+.struct ScrollOffsetsSt
     BG: instanceof CoordW
     VDP: instanceof Coord
 .endst
 
-.struct VisibleAreaStruct
+.struct VisibleAreaSt
     RowCount: db
     ColCount: db
     FirstBGRow: db
@@ -50,7 +50,7 @@
     LastVRAMCol: db
 .endst
 
-.struct DrawRowsParamsStruct
+.struct DrawRowsParamsSt
     VRAMInterval1: dw   ; no. of bytes from the first col to the first visible col in the VRAM tilemap
     VRAMInterval2: dw   ; no. of bytes from the first col to the first visible col on the next line in the VRAM tilemap
     BGInterval: dw      ; no. of bytes from first visible tile of the VRAM tilemap to the last tile of the VRAM tilemap
@@ -58,7 +58,7 @@
     ByteCount2: db      ; no. of bytes from the last visible tile on one line to the first visible tile of the next line in BG tilemap
 .endst
 
-.struct DrawRowParamsStruct
+.struct DrawRowParamsSt
     BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
     VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the row
     ByteCount1: db      ; number of bytes to draw from VDPAddr1
@@ -66,7 +66,7 @@
     ByteCount2: db      ; number of bytes to draw from VDPAddr2
 .endst
 
-.struct DrawColParamsStruct
+.struct DrawColParamsSt
     BGAddr: dw          ; addr in the BG tilemap of the first visible tile 
     VDPAddr1: dw        ; addr in the VRAM tilemap of the *first visible* tile in the col
     RowCount1: db       ; number of tiles to draw from VDPAddr1
@@ -75,13 +75,13 @@
 .endst
 
 .ramsection "main_state" slot "RAMSlot"
-    ScrollOffsets: instanceof ScrollOffsetsStruct
+    ScrollOffsets: instanceof ScrollOffsetsSt
     DrawColTarget: db
     DrawRowTarget: db
-    VisibleArea: instanceof VisibleAreaStruct
-    DrawRowParams: instanceof DrawRowParamsStruct
-    DrawColParams: instanceof DrawColParamsStruct
-    DrawRowsParams: instanceof DrawRowsParamsStruct
+    VisibleArea: instanceof VisibleAreaSt
+    DrawRowParams: instanceof DrawRowParamsSt
+    DrawColParams: instanceof DrawColParamsSt
+    DrawRowsParams: instanceof DrawRowsParamsSt
 .ends
 
 .bank 0
