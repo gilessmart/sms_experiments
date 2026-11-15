@@ -148,6 +148,17 @@
         ld b, (hl)                                  ; bc = VDP write bits + VDP tilemap row start addr
     .endm
 
+    .macro SetScrollOffsets ARGS x, y
+        ld a, x # 256
+        ld (ScrollOffsets.VDP.X), a
+        ld a, y # 224
+        ld (ScrollOffsets.VDP.Y), a
+        ld bc, x
+        ld (ScrollOffsets.BG.X), bc
+        ld bc, y
+        ld (ScrollOffsets.BG.Y), bc
+    .endm
+
     Init:
         ; initialise VDP registers
         VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
@@ -179,15 +190,7 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
-        ; initialise scroll offsets
-        ld a, INIT_BG_POSX # 256
-        ld (ScrollOffsets.VDP.X), a
-        ld a, INIT_BG_POSY # 224
-        ld (ScrollOffsets.VDP.Y), a
-        ld bc, INIT_BG_POSX
-        ld (ScrollOffsets.BG.X), bc
-        ld bc, INIT_BG_POSY
-        ld (ScrollOffsets.BG.Y), bc
+        SetScrollOffsets INIT_BG_POSX, INIT_BG_POSY
 
         ; draw the background
         call CalculateVisibleArea
