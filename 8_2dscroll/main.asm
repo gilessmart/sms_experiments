@@ -159,6 +159,21 @@
         ld (ScrollOffsets.BG.Y), bc
     .endm
 
+    .macro UpdateScrollRegisters
+        ; invert scroll offset & copy to VDP
+        ld a, (ScrollOffsets.VDP.X)
+        ld l, a                 ; l = VDP.X
+        ld a, 0
+        sub l                   ; a = 256 - VDP.X
+        ld l, a                 ; l = 256 - VDP.X
+        VDP_SetRegister 8
+
+        ; copy Y scroll value to VDP
+        ld a, (ScrollOffsets.VDP.Y)
+        ld l, a
+        VDP_SetRegister 9
+    .endm
+
     Init:
         ; initialise VDP registers
         VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
@@ -190,11 +205,12 @@
         ld de, TilePatternsEnd - TilePatterns
         call VDP_CopyData
 
+        ; initialise scroll position
         SetScrollOffsets INIT_BG_POSX, INIT_BG_POSY
+        UpdateScrollRegisters
 
         ; draw the background
         call CalculateVisibleArea
-        call UpdateBGScroll
         call DrawBG
 
         ; turn on display
@@ -903,24 +919,8 @@
 
         ret
 
-    UpdateBGScroll:
-        ; invert scroll offset & copy to VDP
-        ld a, (ScrollOffsets.VDP.X)
-        ld l, a                 ; l = VDP.X
-        ld a, 0
-        sub l                   ; a = 256 - VDP.X
-        ld l, a                 ; l = 256 - VDP.X
-        VDP_SetRegister 8
-
-        ; copy Y scroll value to VDP
-        ld a, (ScrollOffsets.VDP.Y)
-        ld l, a
-        VDP_SetRegister 9
-
-        ret
-
     UpdateBG:
-        call UpdateBGScroll
+        UpdateScrollRegisters
         call DrawCol
         call DrawRow
         ret
