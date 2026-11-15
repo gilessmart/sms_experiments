@@ -186,15 +186,15 @@
 
     Init:
         ; initialise VDP registers
-        VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
-        VDP_SetRegister 1, %10100000 ; 16K VRAM, frame interrupts
-        VDP_SetRegister 2, $ff       ; name table base address $3800
-        VDP_SetRegister 3, $ff       ; color table base address (mostly redundant in mode 4)
-        VDP_SetRegister 4, $ff       ; pattern generator table base address (mostly redundant in mode 4)
-        VDP_SetRegister 5, $ff       ; SAT base address ($ff gives base address of $3f00)
-        VDP_SetRegister 6, $ff       ; sprite pattern table at $2000
-        VDP_SetRegister 7, 0         ; BG color (from sprite palette)
-        VDP_SetRegister 10, $ff      ; line interrupt line counter
+        VDP_SetRegister 0, %00100100    ; hide left-most 8 pixels, mode 4
+        VDP_SetRegister 1, %10100000    ; 16K VRAM, frame interrupts
+        VDP_SetRegister 2, $ff          ; name table base address $3800
+        VDP_SetRegister 3, $ff          ; color table base address (mostly redundant in mode 4)
+        VDP_SetRegister 4, $ff          ; pattern generator table base address (mostly redundant in mode 4)
+        VDP_SetRegister 5, $ff          ; SAT base address ($ff gives base address of $3f00)
+        VDP_SetRegister 6, $ff          ; sprite pattern table at $2000
+        VDP_SetRegister 7, 0            ; BG color (from sprite palette)
+        VDP_SetRegister 10, $ff         ; line interrupt line counter
 
         ; populate SAT
         ld bc, 0
@@ -224,7 +224,7 @@
         call DrawFullBG
 
         ; turn on display
-        VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
+        VDP_SetRegister 1, %11100000    ; 16K VRAM, enable display, frame interrupts
 
         ; prepare to draw the leading edges, which will happen when the VBlank fires (on first 'halt')
         SetDrawRowTarget DRAW_ROW_TARGET_FIRST
