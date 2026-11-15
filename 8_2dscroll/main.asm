@@ -174,6 +174,16 @@
         VDP_SetRegister 9
     .endm
 
+    .macro SetDrawRowTarget ARGS row_idx
+        ld a, row_idx
+        ld (DrawRowTarget), a
+    .endm
+
+    .macro SetDrawColTarget ARGS col_idx
+        ld a, col_idx
+        ld (DrawColTarget), a
+    .endm
+
     Init:
         ; initialise VDP registers
         VDP_SetRegister 0, %00100100 ; hide left-most 8 pixels, mode 4
@@ -216,11 +226,9 @@
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
 
-        ; prepare for row / col draws in VBlank
-        ld a, DRAW_ROW_TARGET_FIRST
-        ld (DrawRowTarget), a
-        ld a, DRAW_COL_TARGET_FIRST
-        ld (DrawColTarget), a
+        ; prepare to draw the leading edges, which will happen when the VBlank fires (on first 'halt')
+        SetDrawRowTarget DRAW_ROW_TARGET_FIRST
+        SetDrawColTarget DRAW_COL_TARGET_FIRST
         call PrepDrawRow
         call PrepDrawCol
 
