@@ -221,7 +221,7 @@
 
         ; draw the background
         call CalculateVisibleArea
-        call DrawBG
+        call DrawFullBG
 
         ; turn on display
         VDP_SetRegister 1, %11100000 ; 16K VRAM, enable display, frame interrupts
@@ -769,7 +769,7 @@
         ret
 
     ; Populates the full VRAM tilemap based on current background & VRAM tilemap position
-    DrawBG:
+    DrawFullBG:
         call PrepDrawRows
 
         ; calculte start addr in VRAM tilemap
