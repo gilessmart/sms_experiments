@@ -31,3 +31,19 @@
         ld a, b     ; otherwise, set a = b
     +:
 .endm
+
+; Sets hl to the lower of hl and bc
+; Sets: hl = lower of hl and bc
+.macro MinBC
+    or a            ; clear c flag
+    sbc hl, bc
+    jr nc, +
+        ; bc was greater; revert hl to previous value
+        add hl, bc 
+    jr ++
+    +:
+        ; bc was smaller or equal; set hl to bc
+        ld h, b
+        ld l, c
+    ++:
+.endm

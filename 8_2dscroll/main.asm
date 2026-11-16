@@ -249,6 +249,7 @@
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
+                ld c, SCROLL_INCREMENT
                 call ScrollUp
             ex af, af'
         jr ++
@@ -256,6 +257,7 @@
         bit CTLR_PORT_AB_A_DOWN, a
         jr nz, ++
             ex af, af'
+                ld c, SCROLL_INCREMENT
                 call ScrollDown
             ex af, af'
         ++:
@@ -264,6 +266,7 @@
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
+                ld c, SCROLL_INCREMENT
                 call ScrollLeft
             ex af, af'
         jr ++
@@ -271,6 +274,7 @@
         bit CTLR_PORT_AB_A_RIGHT, a
         jr nz, ++
             ex af, af'
+                ld c, SCROLL_INCREMENT
                 call ScrollRight
             ex af, af'
         ++:
@@ -368,166 +372,113 @@
 
         ret
 
-    ; Decrements vertical scroll values
-    ; Clobbers: a, bc, de, hl
+    ; Decrements vertical scroll values by a given scroll increment
+    ; Params: 
+    ;   c = scroll increment (from 1 to 8)
+    ; Clobbers: a, b, hl
     ScrollUp:
         SetDrawRowTarget DRAW_ROW_TARGET_FIRST
 
-        ld hl, (ScrollOffsets.BG.Y)
+        ld hl, (ScrollOffsets.BG.Y)                 ; hl = BG.Y
+        ld b, 0                                     ; bc = scroll increment
+        or a                                        ; clear carry flag
+        sbc hl, bc                                  ; hl = BG.Y - scroll increment
+        jr nc, +
+            ld hl, 0
+            ld (ScrollOffsets.BG.Y), hl             ; BG.Y = 0
+            ld a, 0
+            ld (ScrollOffsets.VDP.Y), a             ; VDP.Y = 0
+            ret
+        +:
+        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y - scroll increment
 
-        ; if distance is 0, nothing to do
-        ld a, h
-        or l
-        ret z
-
-        ; store original BG scroll value for later
-        ld d, h
-        ld e, l
-
-        ; clamp hl value to the size of the scroll increment
-        call ClampToScrollIncrement
-
-        ; reduce VDP.Y by clamped value
         ld a, (ScrollOffsets.VDP.Y)
-        sub a, l
+        sub a, c                                    ; a = VDP.Y - scroll increment
         jr nc, +                                    ; skip if no carry i.e. if a < 0
             add a, 224
-        +:     
-        ld (ScrollOffsets.VDP.Y), a
-
-        ; reduce BG.Y by clamped value
-        ex de, hl                                   ; hl = BG.Y
-        or a                                        ; clear carry flag
-        sbc hl, de                                  ; hl = BG.Y - scroll distance
-        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y - scroll distance
+        +:                                          ; a = (VDP.Y - scroll increment) % 224
+        ld (ScrollOffsets.VDP.Y), a                 ; VDP.Y = (VDP.Y - scroll increment) % 224
 
         ret
 
-    ; Increments vertical scroll values
-    ; Clobbers: a, bc, de, hl
+    ; Increments vertical scroll values by a given scroll increment
+    ; Params:
+    ;   c = scroll increment (from 1 to 8)
+    ; Clobbers: a, b, de, hl
     ScrollDown:
         SetDrawRowTarget DRAW_ROW_TARGET_LAST
 
-        ld hl, (ScrollOffsets.BG.Y)
+        ld hl, (BG_ROWS - 24) * 8                   ; hl = max scroll position
+        ld de, (ScrollOffsets.BG.Y)                 ; de = BG.Y
+        or a                                        ; clear carry flag
+        sbc hl, de                                  ; hl = max scroll increment
 
-        ; swap it into de
-        ex de, hl
+        ld b, 0                                     ; bc = requested scroll increment
+        MinBC                                       ; hl = scroll increment
+        ex de, hl                                   ; hl = BG.Y, de = scroll increment
 
-        ; find max available scroll distance
-        ld hl, (BG_ROWS - 24) * 8
-        or a        ; clear carry flag
-        sbc hl, de
+        add hl, de                                  ; hl = BG.Y + scroll increment
+        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y + scroll increment
 
-        ; if distance is 0, nothing to do
-        ld a, h
-        or l
-        ret z
-
-        ; clamp hl value to the size of the scroll increment
-        call ClampToScrollIncrement
-
-        ; increase VDP.Y by clamped value
-        ld a, (ScrollOffsets.VDP.Y)
-        add a, l
+        ld a, (ScrollOffsets.VDP.Y)                 ; a = VDP.Y
+        add a, e                                    ; a = VDP.Y + scroll increment
         cp 224
-        jr c, +                 ; skip if carry i.e. if a < 224
+        jr c, +
             sub a, 224
-        +:
-        ld (ScrollOffsets.VDP.Y), a
-
-        ; increase BG.Y by clamped value
-        ex de, hl                                   ; hl = BG.Y
-        add hl, de                                  ; hl = BG.Y + scroll distance
-        ld (ScrollOffsets.BG.Y), hl                 ; BG.Y = BG.Y + scroll distance
+        +:                                          ; a = (VDP.Y + scroll increment) % 224
+        ld (ScrollOffsets.VDP.Y), a                 ; VDP.Y = (VDP.Y + scroll increment) % 224
 
         ret
 
-    ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
-    ; Clobbers: a, hl, bc, de
+    ; Decrements horizontal scroll values by a given scroll increment
+    ; Params: 
+    ;   c = scroll increment (from 1 to 8)
+    ; Clobbers: a, b, hl
     ScrollLeft:
         SetDrawColTarget DRAW_COL_TARGET_FIRST
 
-        ; load current value of BG.X from RAM
-        ld hl, (ScrollOffsets.BG.X)
-
-        ; the current value of BG.X is the max available scroll distance
-
-        ; if distance is 0, nothing to do
-        ld a, h
-        or l
-        ret z
-
-        ; store original BG.X value for later
-        ld d, h
-        ld e, l
-
-        ; clamp hl value to the size of the scroll increment
-        call ClampToScrollIncrement
-
-        ; reduce VDP.X by clamped value
-        ld a, (ScrollOffsets.VDP.X)
-        sub a, l
-        ld (ScrollOffsets.VDP.X), a
-
-        ; reduce BG.X by clamped value
-        ex de, hl                                   ; hl = BG.X
+        ld hl, (ScrollOffsets.BG.X)                 ; hl = BG.X
+        ld b, 0                                     ; bc = scroll increment
         or a                                        ; clear carry flag
-        sbc hl, de                                  ; hl = BG.X - scroll distance
-        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X - scroll distance
+        sbc hl, bc                                  ; hl = BG.X - scroll increment
+        jr nc, +
+            ld hl, 0
+            ld (ScrollOffsets.BG.X), hl             ; BG.X = 0
+            ld a, 0
+            ld (ScrollOffsets.VDP.X), a             ; VDP.X = 0
+            ret
+        +:
+        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X - scroll increment
+
+        ld a, (ScrollOffsets.VDP.X)
+        sub a, c                                    ; a = VDP.X - scroll increment
+        ld (ScrollOffsets.VDP.X), a                 ; VDP.X = VDP.X - scroll increment
 
         ret
     
-    ; Increments scroll values & sets which column of the background gets shown on the right of the screen
-    ; Clobbers: a, hl, bc, de
+    ; Increments horizontal scroll values by a given scroll increment
+    ; Params:
+    ;   c = scroll increment (from 1 to 8)
+    ; Clobbers: a, b, de, hl
     ScrollRight:
         SetDrawColTarget DRAW_COL_TARGET_LAST
 
-        ; load current value of BG.X from RAM
-        ld hl, (ScrollOffsets.BG.X)
+        ld hl, (BG_COLS - 32) * 8                   ; hl = max scroll position
+        ld de, (ScrollOffsets.BG.X)                 ; de = BG.X
+        or a                                        ; clear carry flag
+        sbc hl, de                                  ; hl = max scroll increment
 
-        ; swap it into de
-        ex de, hl
+        ld b, 0                                     ; bc = requested scroll increment
+        MinBC                                       ; hl = scroll increment
+        ex de, hl                                   ; hl = BG.X, de = scroll increment
 
-        ; find max available scroll distance
-        ld hl, (BG_COLS - 32) * 8
-        or a        ; clear carry flag
-        sbc hl, de
+        add hl, de                                  ; hl = BG.X + scroll increment
+        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X + scroll increment
 
-        ; if distance is 0, nothing to do
-        ld a, h
-        or l
-        ret z
+        ld a, (ScrollOffsets.VDP.X)                 ; a = VDP.X
+        add a, e                                    ; a = VDP.X + scroll increment
+        ld (ScrollOffsets.VDP.X), a                 ; VDP.X = VDP.X + scroll increment
 
-        ; clamp hl value to the size of the scroll increment
-        call ClampToScrollIncrement
-
-        ; increase VDP.X by clamped value
-        ld a, (ScrollOffsets.VDP.X)
-        add a, l
-        ld (ScrollOffsets.VDP.X), a
-
-        ; increase BG.X by clamped value
-        ex de, hl                                   ; hl = BG.X
-        add hl, de                                  ; hl = BG.X + scroll distance
-        ld (ScrollOffsets.BG.X), hl                 ; BG.X = BG.X + scroll distance
-
-        ret
-
-    ; Adjusts a value to be the max of the current value or SCROLL_INCREMENT
-    ; Params: hl: value to adjust
-    ; Clobbers: bc
-    ; Sets: hl = clamped value
-    ClampToScrollIncrement:
-        ld bc, SCROLL_INCREMENT
-        or a        ; clear c flag
-        sbc hl, bc
-        jr nc, +
-            ; if c is set, bc (SCROLL_INCREMENT) was greater than hl
-            add hl, bc  ; restore hl to its previous value
-            ret
-        +:
-        ; otherwise clamp to SCROLL_INCREMENT
-        ld hl, SCROLL_INCREMENT
         ret
 .ends
 
