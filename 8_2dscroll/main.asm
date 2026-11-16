@@ -246,8 +246,6 @@
         in a, CTLR_PORT_AB
 
         ; scroll up / down
-        ld hl, DrawRowTarget
-        ld (hl), DRAW_ROW_TARGET_FIRST
         bit CTLR_PORT_AB_A_UP, a
         jr nz, +
             ex af, af'
@@ -259,14 +257,10 @@
         jr nz, ++
             ex af, af'
                 call ScrollDown
-                ld hl, DrawRowTarget
-                ld (hl), DRAW_ROW_TARGET_LAST
             ex af, af'
         ++:
 
         ; scroll left / right
-        ld hl, DrawColTarget
-        ld (hl), DRAW_COL_TARGET_FIRST
         bit CTLR_PORT_AB_A_LEFT, a
         jr nz, +
             ex af, af'
@@ -278,8 +272,6 @@
         jr nz, ++
             ex af, af'
                 call ScrollRight
-                ld hl, DrawColTarget
-                ld (hl), DRAW_COL_TARGET_LAST
             ex af, af'
         ++:
 
@@ -379,6 +371,8 @@
     ; Decrements vertical scroll values
     ; Clobbers: a, bc, de, hl
     ScrollUp:
+        SetDrawRowTarget DRAW_ROW_TARGET_FIRST
+
         ld hl, (ScrollOffsets.BG.Y)
 
         ; if distance is 0, nothing to do
@@ -412,6 +406,8 @@
     ; Increments vertical scroll values
     ; Clobbers: a, bc, de, hl
     ScrollDown:
+        SetDrawRowTarget DRAW_ROW_TARGET_LAST
+
         ld hl, (ScrollOffsets.BG.Y)
 
         ; swap it into de
@@ -449,6 +445,8 @@
     ; Decrements scroll values & sets which column of the background gets shown on the left of the screen
     ; Clobbers: a, hl, bc, de
     ScrollLeft:
+        SetDrawColTarget DRAW_COL_TARGET_FIRST
+
         ; load current value of BG.X from RAM
         ld hl, (ScrollOffsets.BG.X)
 
@@ -482,6 +480,8 @@
     ; Increments scroll values & sets which column of the background gets shown on the right of the screen
     ; Clobbers: a, hl, bc, de
     ScrollRight:
+        SetDrawColTarget DRAW_COL_TARGET_LAST
+
         ; load current value of BG.X from RAM
         ld hl, (ScrollOffsets.BG.X)
 
