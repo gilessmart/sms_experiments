@@ -220,17 +220,13 @@
         UpdateScrollRegisters
 
         ; draw the background
-        call CalcVisibleArea
         call DrawFullBG
 
         ; turn on display
         VDP_SetRegister 1, %11100000    ; 16K VRAM, enable display, frame interrupts
 
         ; prepare to draw the leading edges, which will happen when the VBlank fires (on first 'halt')
-        SetDrawRowTarget DRAW_ROW_TARGET_FIRST
-        SetDrawColTarget DRAW_COL_TARGET_FIRST
-        call PrepDrawRow
-        call PrepDrawCol
+        call InitDrawRowColParams
 
         ; read & clear VDP flags, clear interrupt request line..
         ; (forces the first interrupt to fire on the regular scanline, instead of ASAP, 
@@ -279,9 +275,7 @@
             ex af, af'
         ++:
 
-        call CalcVisibleArea
-        call PrepDrawRow
-        call PrepDrawCol
+        call PrepUpdateBG
 
         jr MainLoop
 
@@ -483,9 +477,26 @@
 .ends
 
 .section "draw_background"
+    ; Initialise DrawRowParams & DrawColParams, so DrawRow and DrawCol can run safely
+    ; Clobbers: a, bc, de, hl
+    InitDrawRowColParams:
+        SetDrawRowTarget DRAW_ROW_TARGET_FIRST
+        SetDrawColTarget DRAW_COL_TARGET_FIRST
+        call CalcDrawRowParams
+        call CalcDrawColParams
+        ret
+
+    ; Sets the data that allows the UpdateBG routine to update the background efficiently
+    ; Clobbers: a, bc, de, hl
+    PrepUpdateBG:
+        call CalcVisibleArea
+        call CalcDrawRowParams
+        call CalcDrawColParams
+        ret
+    
     ; Sets the values used during VBlank by the DrawCol routine
     ; Clobbers: a, bc, de, hl
-    PrepDrawCol:
+    CalcDrawColParams:
         ; calculate target VDP & BG col indices
         ld a, (DrawColTarget)
         cp DRAW_COL_TARGET_LAST
@@ -578,6 +589,7 @@
         ret
 
     ; Sets a column in the VRAM tilemap
+    ; Clobbers: a, bc, de, hl, bc', de', hl'
     DrawCol:
         ; write first col group
         ld c, VDP_CTRL_PORT
@@ -628,7 +640,7 @@
 
     ; Sets values used during VBlank by the DrawRow routine
     ; Clobbers: a, bc, de, hl
-    PrepDrawRow:
+    CalcDrawRowParams:
         ; calculate target VDP & BG row indices
         ld a, (DrawRowTarget)
         cp DRAW_ROW_TARGET_LAST
@@ -720,8 +732,10 @@
         ret
 
     ; Populates the full VRAM tilemap based on current background & VRAM tilemap position
+    ; Clobbers: a, bc, de, hl, bc', hl'
     DrawFullBG:
-        call PrepDrawRows
+        call CalcVisibleArea
+        call CalcDrawRowsParams
 
         ; calculte start addr in VRAM tilemap
         ld a, (VisibleArea.FirstVRAMRow)
@@ -777,7 +791,9 @@
         
         ret
 
-    PrepDrawRows:
+    ; Sets the DrawRowsParams used by the DrawRows routine
+    ; Clobbers: a, b, de, hl
+    CalcDrawRowsParams:
         ; store interval from first col to first vis. col (bytes)
         ld a, (VisibleArea.FirstVRAMCol)
         add a, a
@@ -878,6 +894,8 @@
 
         ret
 
+    ; Sets VDP scroll registers & updates the VDP tilemap
+    ; Clobbers: a, bc, de, hl, bc', de', hl'
     UpdateBG:
         UpdateScrollRegisters
         call DrawCol
