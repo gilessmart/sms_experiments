@@ -220,7 +220,7 @@
         UpdateScrollRegisters
 
         ; draw the background
-        call CalculateVisibleArea
+        call CalcVisibleArea
         call DrawFullBG
 
         ; turn on display
@@ -279,7 +279,7 @@
             ex af, af'
         ++:
 
-        call CalculateVisibleArea
+        call CalcVisibleArea
         call PrepDrawRow
         call PrepDrawCol
 
@@ -287,7 +287,7 @@
 
     ; Populates VisibleArea
     ; Clobbers: a, bc, de, hl
-    CalculateVisibleArea:
+    CalcVisibleArea:
         ;; Rows ;;
 
         ; calculate RowCount
