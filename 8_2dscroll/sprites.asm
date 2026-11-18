@@ -1,4 +1,4 @@
-.ramsection "shadow_sat" slot "RAMSlot"
+.ramsection "sprite_state" slot "RAMSlot"
     ShadowSAT: dsb 256
 .ends
 
