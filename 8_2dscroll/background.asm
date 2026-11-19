@@ -143,7 +143,7 @@
 .endm
 
 .section "bg_lib"
-    ; Initialise BG_DrawRowParams & BG_DrawColParams, so BG_DrawRow and BG_DrawCol can run safely
+    ; Initialise BG_DrawRowParams & BG_DrawColParams, so BG_UpdateBG can run safely
     ; Clobbers: a, bc, de, hl
     BG_InitDrawRowColParams:
         BG_SetDrawRowTarget BG_DRAW_ROW_TARGET_FIRST
@@ -519,7 +519,7 @@
         call BG_CalcDrawColParams
         ret
     
-    ; Sets values used during VBlank by the BG_DrawRow routine
+    ; Sets values used during VBlank to draw the leading row
     ; Clobbers: a, bc, de, hl
     BG_CalcDrawRowParams:
         ; calculate target VDP & BG row indices
@@ -583,7 +583,7 @@
         
         ret
 
-    ; Sets the values used during VBlank by the BG_DrawCol routine
+    ; Sets the values used during VBlank to draw the leading col
     ; Clobbers: a, bc, de, hl
     BG_CalcDrawColParams:
         ; calculate target VDP & BG col indices
@@ -643,7 +643,7 @@
         add hl, bc                                  ; hl = VDP write bits + start of row addr + col offset
         ld (BG_DrawColParams.VDPAddr1), hl
 
-        ; prevent overdraw - don't draw the corner tile because BG_DrawRow also draws it
+        ; prevent overdraw - exclude the corner tile from the column because it's also part of the row
         ld a, (BG_DrawRowTarget)
         cp BG_DRAW_ROW_TARGET_LAST
         jr z, +
@@ -678,17 +678,13 @@
 
         ret
 
-    ; Sets VDP scroll registers & updates the VDP tilemap
+    ; Updates VDP scroll registers & VDP tilemap
     ; Clobbers: a, bc, de, hl, bc', de', hl'
     BG_UpdateBG:
         BG_UpdateScrollRegisters
-        call BG_DrawRow
-        call BG_DrawCol
-        ret
-
-    ; Sets a row in the VRAM tilemap
-    ; Clobbers: a, bc, de, hl,
-    BG_DrawRow:        
+    
+        ;; Update the leading row in the VRAM tilemap
+    
         ld hl, (BG_DrawRowParams.BGAddr)
 
         ld de, (BG_DrawRowParams.VDPAddr1)
@@ -703,22 +699,19 @@
 
         ld a, (BG_DrawRowParams.ByteCount2)
         cp 0
-        ret z
+        jr z, +
+            ld de, (BG_DrawRowParams.VDPAddr2)
+            ld c, VDP_CTRL_PORT
+            out (c), e
+            out (c), d
 
-        ld de, (BG_DrawRowParams.VDPAddr2)
-        ld c, VDP_CTRL_PORT
-        out (c), e
-        out (c), d
+            ld b, a
+            ld c, VDP_DATA_PORT
+            otir
+        +:
 
-        ld b, a
-        ld c, VDP_DATA_PORT
-        otir
-
-        ret
-
-    ; Sets a column in the VRAM tilemap
-    ; Clobbers: a, bc, de, hl, bc', de', hl'
-    BG_DrawCol:
+        ;; Update the leading column in VRAM tilemap
+    
         ; write first col group
         ld c, VDP_CTRL_PORT
         ld de, 64
@@ -731,22 +724,21 @@
         ld a, (BG_DrawColParams.RowCount1)
         cp 0
         jr z, +
-
-        ld b, a
-        ld hl, (BG_DrawColParams.VDPAddr1)
-        -:
-            out (c), l
-            out (c), h
-            add hl, de
-            exx
-                ld b, 2
-                otir
+            ld b, a
+            ld hl, (BG_DrawColParams.VDPAddr1)
+            -:
+                out (c), l
+                out (c), h
                 add hl, de
-            exx
-            djnz -
+                exx
+                    ld b, 2
+                    otir
+                    add hl, de
+                exx
+                djnz -
+        +:
 
         ; write the second col group
-        +:
         ld a, (BG_DrawColParams.RowCount2)
         cp 0
         ret z
