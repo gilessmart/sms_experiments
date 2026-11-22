@@ -159,25 +159,25 @@
     ScrollUp:
         BG_SetDrawRowTarget BG_DRAW_ROW_TARGET_FIRST
 
-        ld hl, (BG_ScrollOffsets.BG.Y)           ; hl = BG.Y
+        ld hl, (BG_ScrollOffsets.BG.Y)              ; hl = BG.Y
         ld b, 0                                     ; bc = scroll increment
         or a                                        ; clear carry flag
         sbc hl, bc                                  ; hl = BG.Y - scroll increment
         jr nc, +
             ld hl, 0
-            ld (BG_ScrollOffsets.BG.Y), hl       ; BG.Y = 0
+            ld (BG_ScrollOffsets.BG.Y), hl          ; BG.Y = 0
             ld a, 0
-            ld (BG_ScrollOffsets.VDP.Y), a       ; VDP.Y = 0
+            ld (BG_ScrollOffsets.VDP.Y), a          ; VDP.Y = 0
             ret
         +:
-        ld (BG_ScrollOffsets.BG.Y), hl           ; BG.Y = BG.Y - scroll increment
+        ld (BG_ScrollOffsets.BG.Y), hl              ; BG.Y = BG.Y - scroll increment
 
         ld a, (BG_ScrollOffsets.VDP.Y)
         sub a, c                                    ; a = VDP.Y - scroll increment
         jr nc, +                                    ; skip if no carry i.e. if a < 0
             add a, 224
         +:                                          ; a = (VDP.Y - scroll increment) % 224
-        ld (BG_ScrollOffsets.VDP.Y), a           ; VDP.Y = (VDP.Y - scroll increment) % 224
+        ld (BG_ScrollOffsets.VDP.Y), a              ; VDP.Y = (VDP.Y - scroll increment) % 224
 
         ret
 
@@ -189,7 +189,7 @@
         BG_SetDrawRowTarget BG_DRAW_ROW_TARGET_LAST
 
         ld hl, (BG_ROWS - 24) * 8                   ; hl = max scroll position
-        ld de, (BG_ScrollOffsets.BG.Y)           ; de = BG.Y
+        ld de, (BG_ScrollOffsets.BG.Y)              ; de = BG.Y
         or a                                        ; clear carry flag
         sbc hl, de                                  ; hl = max scroll increment
 
@@ -198,15 +198,15 @@
         ex de, hl                                   ; hl = BG.Y, de = scroll increment
 
         add hl, de                                  ; hl = BG.Y + scroll increment
-        ld (BG_ScrollOffsets.BG.Y), hl           ; BG.Y = BG.Y + scroll increment
+        ld (BG_ScrollOffsets.BG.Y), hl              ; BG.Y = BG.Y + scroll increment
 
-        ld a, (BG_ScrollOffsets.VDP.Y)           ; a = VDP.Y
+        ld a, (BG_ScrollOffsets.VDP.Y)              ; a = VDP.Y
         add a, e                                    ; a = VDP.Y + scroll increment
         cp 224
         jr c, +
             sub a, 224
         +:                                          ; a = (VDP.Y + scroll increment) % 224
-        ld (BG_ScrollOffsets.VDP.Y), a           ; VDP.Y = (VDP.Y + scroll increment) % 224
+        ld (BG_ScrollOffsets.VDP.Y), a              ; VDP.Y = (VDP.Y + scroll increment) % 224
 
         ret
 
@@ -217,22 +217,22 @@
     ScrollLeft:
         BG_SetDrawColTarget BG_DRAW_COL_TARGET_FIRST
 
-        ld hl, (BG_ScrollOffsets.BG.X)           ; hl = BG.X
+        ld hl, (BG_ScrollOffsets.BG.X)              ; hl = BG.X
         ld b, 0                                     ; bc = scroll increment
         or a                                        ; clear carry flag
         sbc hl, bc                                  ; hl = BG.X - scroll increment
         jr nc, +
             ld hl, 0
-            ld (BG_ScrollOffsets.BG.X), hl       ; BG.X = 0
+            ld (BG_ScrollOffsets.BG.X), hl          ; BG.X = 0
             ld a, 0
-            ld (BG_ScrollOffsets.VDP.X), a       ; VDP.X = 0
+            ld (BG_ScrollOffsets.VDP.X), a          ; VDP.X = 0
             ret
         +:
-        ld (BG_ScrollOffsets.BG.X), hl           ; BG.X = BG.X - scroll increment
+        ld (BG_ScrollOffsets.BG.X), hl              ; BG.X = BG.X - scroll increment
 
         ld a, (BG_ScrollOffsets.VDP.X)
         sub a, c                                    ; a = VDP.X - scroll increment
-        ld (BG_ScrollOffsets.VDP.X), a           ; VDP.X = VDP.X - scroll increment
+        ld (BG_ScrollOffsets.VDP.X), a              ; VDP.X = VDP.X - scroll increment
 
         ret
     
@@ -244,7 +244,7 @@
         BG_SetDrawColTarget BG_DRAW_COL_TARGET_LAST
 
         ld hl, (BG_COLS - 32) * 8                   ; hl = max scroll position
-        ld de, (BG_ScrollOffsets.BG.X)           ; de = BG.X
+        ld de, (BG_ScrollOffsets.BG.X)              ; de = BG.X
         or a                                        ; clear carry flag
         sbc hl, de                                  ; hl = max scroll increment
 
@@ -253,11 +253,11 @@
         ex de, hl                                   ; hl = BG.X, de = scroll increment
 
         add hl, de                                  ; hl = BG.X + scroll increment
-        ld (BG_ScrollOffsets.BG.X), hl           ; BG.X = BG.X + scroll increment
+        ld (BG_ScrollOffsets.BG.X), hl              ; BG.X = BG.X + scroll increment
 
-        ld a, (BG_ScrollOffsets.VDP.X)           ; a = VDP.X
+        ld a, (BG_ScrollOffsets.VDP.X)              ; a = VDP.X
         add a, e                                    ; a = VDP.X + scroll increment
-        ld (BG_ScrollOffsets.VDP.X), a           ; VDP.X = VDP.X + scroll increment
+        ld (BG_ScrollOffsets.VDP.X), a              ; VDP.X = VDP.X + scroll increment
 
         ret
     
