@@ -15,6 +15,15 @@
                 "-s", "test_images/sprites.png",
                 "-o", "output"
             ]
+        },
+        {
+            "name": "Python Debugger: pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests"
+            ]
         }
     ]
 }
