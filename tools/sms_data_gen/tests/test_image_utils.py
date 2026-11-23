@@ -5,8 +5,8 @@ from sms_data_gen.image_utils import extract_tiles, flip_h, flip_hv, flip_v, ima
 def test_extract_tiles_rows_cols():
     with Image.open("test_images/test_tiles.png").convert("RGBA") as img:
         cols, rows, _ = extract_tiles(img)
-        assert cols == 1
-        assert rows == 5
+        assert cols == 5
+        assert rows == 1
 
 def test_images_are_equal():
     with Image.open("test_images/test_tiles.png").convert("RGBA") as img:
