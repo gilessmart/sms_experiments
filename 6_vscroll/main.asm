@@ -301,13 +301,18 @@
 .ends
 
 .section "vdp_data"
+    Palette:
     .include "data/palette.asm"
+    PaletteEnd:
+    TilePatterns:
     .include "data/tile_patterns.asm"
+    TilePatternsEnd:
 .ends
 
 .bank 1
 .slot 1
 
 .section "tilemap"
+    Tilemap:
     .include "data/tilemap.asm"
 .ends

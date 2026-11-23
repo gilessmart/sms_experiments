@@ -219,8 +219,16 @@
     .db 8, 0, $18
     .db 8, 8, $19
 
+    Palette:
     .include "data/palette.asm"
+    PaletteEnd:
+    TilePatterns:
     .include "data/tile_patterns.asm"
+    TilePatternsEnd:
+    Tilemap:
     .include "data/tilemap.asm"
+    TilemapEnd:
+    SpritePatterns:
     .include "data/sprite_patterns.asm"
+    SpritePatternsEnd:
 .ends

@@ -68,13 +68,13 @@ def _get_pattern_line_bytes(palette_indices: list[int]) -> list[int]:
 
 # ASM output
 
-def write_patterns_asm(output_dir: Optional[str], filename: str, label: str, data: bytes):
-    content = _create_asm_content(label, data)
+def write_patterns_asm(output_dir: Optional[str], filename: str, data: bytes):
+    content = _create_asm_content(data)
     write_file(output_dir, filename, content)
 
-def _create_asm_content(label: str, data: bytes):
+def _create_asm_content(data: bytes):
     """Format pattern data as assembly code."""
-    lines = [f"{label}:"]
+    lines = []
 
     # split into 32 byte patterns
     for pattern_num, pattern_data in enumerate(batched(data, 32)):
@@ -84,7 +84,6 @@ def _create_asm_content(label: str, data: bytes):
         lines.append(".db " + ",".join(_to_hex_bytes(pattern_data[:16])))
         lines.append(".db " + ",".join(_to_hex_bytes(pattern_data[16:])))
     
-    lines.append(f"{label}End:")
     return "\n".join(lines) + "\n"
 
 def _to_hex_bytes(byte_values: Sequence[int]) -> list[str]:

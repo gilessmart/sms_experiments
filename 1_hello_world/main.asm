@@ -96,7 +96,13 @@
     -:jr -
 
     .include "vdp.asm"
+    Palette:
     .include "data/palette.asm"
+    PaletteEnd:
+    TilePatterns:
     .include "data/tile_patterns.asm"
+    TilePatternsEnd:
+    Tilemap:
     .include "data/tilemap.asm"
+    TilemapEnd:
 .ends

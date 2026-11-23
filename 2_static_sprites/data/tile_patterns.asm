@@ -1,4 +1,3 @@
-TilePatterns:
 ; pattern 0x00
 .db $ff,$ff,$ff,$00,$ff,$ff,$ff,$00,$ff,$ff,$ff,$00,$ff,$ff,$ff,$00
 .db $ff,$ff,$ff,$00,$ff,$ff,$ff,$00,$ff,$ff,$ff,$00,$ff,$ff,$ff,$00
@@ -230,4 +229,3 @@ TilePatterns:
 ; pattern 0x4c
 .db $00,$00,$00,$00,$00,$ff,$00,$00,$00,$00,$ff,$00,$00,$00,$00,$00
 .db $00,$00,$00,$00,$00,$ff,$00,$00,$00,$fe,$01,$00,$00,$fc,$03,$00
-TilePatternsEnd:

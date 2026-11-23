@@ -51,7 +51,7 @@ def write_palettes(output_dir, tile_palette: Palette, sprite_palette: Palette) -
     write_file(output_dir, "palette.asm", content)
 
 def _create_asm_content(tile_palette_bytes: bytes, sprite_palette_bytes: bytes) -> str:
-    lines = ["Palette:"]
+    lines = []
     
     lines.append(f"; background palette")
     tile_palette_hexes = [f"${n:02x}" for n in tile_palette_bytes]
@@ -61,5 +61,4 @@ def _create_asm_content(tile_palette_bytes: bytes, sprite_palette_bytes: bytes) 
     sprite_palette_hexes = [f"${n:02x}" for n in sprite_palette_bytes]
     lines.append(".db " + ",".join(sprite_palette_hexes))    
     
-    lines.append("PaletteEnd:")
     return "\n".join(lines) + "\n"

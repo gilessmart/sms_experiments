@@ -77,7 +77,7 @@ def main():
     if not bg_tile_patterns.is_empty():
         # Output bg tile pattern data
         data = bg_tile_patterns.get_bytes(bg_tile_palette.index)
-        write_patterns_asm(args.output_dir_path, "tile_patterns.asm", "TilePatterns", data)
+        write_patterns_asm(args.output_dir_path, "tile_patterns.asm", data)
         # Output bg tile pattern image
         write_bg_tiles_img(args.output_dir_path, bg_tile_patterns)
     
@@ -90,7 +90,7 @@ def main():
             return sprite_palette.index(color) if a == 255 else 0
         
         data = sprite_patterns.get_bytes(get_sprite_palette_idx)
-        write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", "SpritePatterns", data)
+        write_patterns_asm(args.output_dir_path, "sprite_patterns.asm", data)
 
 def validate_sprite_palette_colors(colors: list[RGBA]) -> None:
     for color in colors:

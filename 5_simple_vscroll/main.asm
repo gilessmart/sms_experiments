@@ -138,7 +138,13 @@
 .ends
 
 .section "vdp_data"
+    Palette:
     .include "data/palette.asm"
+    PaletteEnd:
+    TilePatterns:
     .include "data/tile_patterns.asm"
+    TilePatternsEnd:
+    Tilemap:
     .include "data/tilemap.asm"
+    TilemapEnd:
 .ends

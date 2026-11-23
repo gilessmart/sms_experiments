@@ -47,7 +47,7 @@ def write_tilemap_asm(output_dir: Optional[str], tilemap: Tilemap) -> None:
     write_file(output_dir, "tilemap.asm", content)
 
 def _create_asm_content(data: bytes, cols: int):
-    lines = ["Tilemap:"]
+    lines = []
 
     # split the data into rows of the tilemap (each entry is 2 bytes)
     for row_num, row_bytes in enumerate(batched(data, cols * 2)):
@@ -56,8 +56,6 @@ def _create_asm_content(data: bytes, cols: int):
         hex_word_groups = batched(_to_hex_words(row_bytes), 16)
         for group in hex_word_groups:
             lines.append(f".dw " + ",".join(group))
-    
-    lines.append("TilemapEnd:")
 
     return "\n".join(lines) + "\n"
 
